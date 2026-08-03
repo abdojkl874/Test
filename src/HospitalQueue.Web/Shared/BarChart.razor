@@ -1,0 +1,29 @@
+@* Minimal dependency-free horizontal bar chart (no external JS charting library, so the board keeps working on an offline hospital LAN). *@
+<div class="barchart">
+    @if (!Items.Any())
+    {
+        <div class="barchart-empty">لا توجد بيانات لهذه الفترة</div>
+    }
+    else
+    {
+        @foreach (var item in Items)
+        {
+            <div class="barchart-row">
+                <div class="barchart-label">@item.Label</div>
+                <div class="barchart-track">
+                    <div class="barchart-bar" style="width:@(WidthPercent(item.Value))%"></div>
+                </div>
+                <div class="barchart-value">@item.Value.ToString(ValueFormat)</div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public IReadOnlyList<(string Label, double Value)> Items { get; set; } = Array.Empty<(string, double)>();
+    [Parameter] public string ValueFormat { get; set; } = "0";
+
+    private double Max => Items.Count == 0 ? 0 : Items.Max(i => i.Value);
+
+    private double WidthPercent(double value) => Max <= 0 ? 0 : Math.Max(2, value / Max * 100);
+}

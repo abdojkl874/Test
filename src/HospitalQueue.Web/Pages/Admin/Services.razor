@@ -1,0 +1,134 @@
+@page "/admin/services"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+
+<PageTitle>الخدمات والعيادات</PageTitle>
+
+<h1>الخدمات والعيادات</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-error">@errorMessage</div>
+}
+
+<div class="card">
+    <h3>إضافة خدمة/عيادة جديدة</h3>
+    <div class="grid grid-3">
+        <div class="form-group">
+            <label>الاسم</label>
+            <input class="form-control" @bind="newName" placeholder="مثال: الباطنية" />
+        </div>
+        <div class="form-group">
+            <label>الرمز (يُستخدم في رقم التذكرة، مثال A)</label>
+            <input class="form-control" @bind="newCode" maxlength="10" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" @onclick="AddAsync">إضافة</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>الاسم</th>
+                <th>الرمز</th>
+                <th>الترتيب</th>
+                <th>الحالة</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var service in services)
+            {
+                <tr @key="service.Id">
+                    <td><input class="form-control" @bind="service.NameAr" /></td>
+                    <td><input class="form-control" style="width:70px" @bind="service.Code" maxlength="10" /></td>
+                    <td><input type="number" class="form-control" style="width:80px" @bind="service.DisplayOrder" /></td>
+                    <td>@(service.IsActive ? "مفعّلة" : "معطّلة")</td>
+                    <td style="display:flex;gap:8px;">
+                        <button class="btn btn-secondary" @onclick="() => SaveAsync(service)">حفظ</button>
+                        <button class="btn @(service.IsActive ? "btn-danger" : "btn-primary")" @onclick="() => ToggleActiveAsync(service)">
+                            @(service.IsActive ? "تعطيل" : "تفعيل")
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <p style="color:var(--color-muted);">يتم تعطيل الخدمة بدلاً من حذفها للحفاظ على سجل التذاكر السابقة.</p>
+</div>
+
+@code {
+    private List<Service> services = new();
+    private string newName = string.Empty;
+    private string newCode = string.Empty;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        services = await Db.Services.OrderBy(s => s.DisplayOrder).ToListAsync();
+    }
+
+    private async Task AddAsync()
+    {
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(newName) || string.IsNullOrWhiteSpace(newCode))
+        {
+            errorMessage = "الرجاء إدخال الاسم والرمز";
+            return;
+        }
+
+        if (await Db.Services.AnyAsync(s => s.Code == newCode))
+        {
+            errorMessage = "هذا الرمز مستخدم مسبقاً";
+            return;
+        }
+
+        Db.Services.Add(new Service
+        {
+            Id = Guid.NewGuid(),
+            NameAr = newName.Trim(),
+            Code = newCode.Trim().ToUpperInvariant(),
+            DisplayOrder = services.Count,
+            IsActive = true,
+        });
+
+        try
+        {
+            await Db.SaveChangesAsync();
+            newName = string.Empty;
+            newCode = string.Empty;
+            await LoadAsync();
+        }
+        catch (DbUpdateException)
+        {
+            errorMessage = "تعذر حفظ الخدمة، تأكد من عدم تكرار الرمز";
+        }
+    }
+
+    private async Task SaveAsync(Service service)
+    {
+        errorMessage = null;
+        try
+        {
+            await Db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            errorMessage = "تعذر حفظ التعديلات";
+        }
+    }
+
+    private async Task ToggleActiveAsync(Service service)
+    {
+        service.IsActive = !service.IsActive;
+        await Db.SaveChangesAsync();
+    }
+}

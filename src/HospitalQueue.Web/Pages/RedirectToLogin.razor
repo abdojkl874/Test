@@ -1,0 +1,20 @@
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+
+        if (state.User.Identity?.IsAuthenticated == true)
+        {
+            // Logged in but lacks the role for this page — sending them back
+            // to the login form would just loop forever.
+            Nav.NavigateTo("/Account/AccessDenied", forceLoad: true);
+            return;
+        }
+
+        var returnUrl = Uri.EscapeDataString(Nav.ToBaseRelativePath(Nav.Uri));
+        Nav.NavigateTo($"/Account/Login?returnUrl=/{returnUrl}", forceLoad: true);
+    }
+}

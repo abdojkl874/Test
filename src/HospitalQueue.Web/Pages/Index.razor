@@ -1,0 +1,25 @@
+@page "/"
+@inject NavigationManager Nav
+@inject AuthenticationStateProvider AuthStateProvider
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+
+        if (user.Identity?.IsAuthenticated != true)
+        {
+            Nav.NavigateTo("/Account/Login", forceLoad: true);
+            return;
+        }
+
+        var home = user.IsInRole(AppRoles.Admin) ? "/admin"
+            : user.IsInRole(AppRoles.Employee) ? "/employee/call"
+            : user.IsInRole(AppRoles.Kiosk) ? "/kiosk"
+            : user.IsInRole(AppRoles.Display) ? "/display"
+            : "/Account/Login";
+
+        Nav.NavigateTo(home, forceLoad: home == "/Account/Login");
+    }
+}

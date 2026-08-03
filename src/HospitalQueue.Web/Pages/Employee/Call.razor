@@ -1,0 +1,324 @@
+@page "/employee/call"
+@attribute [Authorize(Roles = AppRoles.Employee + "," + AppRoles.Admin)]
+@using System.Security.Claims
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject IQueueService QueueService
+@inject ApplicationDbContext Db
+@inject AuthenticationStateProvider AuthStateProvider
+@inject HospitalQueue.Web.Services.QueueEventBus Bus
+@implements IDisposable
+
+<PageTitle>شاشة النداء</PageTitle>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-error">@errorMessage</div>
+}
+
+@if (activeSession is null)
+{
+    <div class="card" style="max-width:500px;margin:0 auto;">
+        <h3>بدء جلسة عمل</h3>
+
+        <div class="form-group">
+            <label>الشباك</label>
+            <select class="form-control" @bind="selectedCounterId" @bind:after="OnSelectedCounterChanged">
+                <option value="">-- اختر الشباك --</option>
+                @foreach (var counter in counters)
+                {
+                    <option value="@counter.Id">@counter.Name</option>
+                }
+            </select>
+        </div>
+
+        @if (availableServices.Any())
+        {
+            <div class="form-group">
+                <label>الخدمة / العيادة</label>
+                <select class="form-control" @bind="selectedServiceId">
+                    <option value="">-- اختر الخدمة --</option>
+                    @foreach (var service in availableServices)
+                    {
+                        <option value="@service.Id">@service.NameAr</option>
+                    }
+                </select>
+            </div>
+        }
+
+        <button class="btn btn-primary btn-block" @onclick="StartSessionAsync">بدء العمل</button>
+    </div>
+}
+else
+{
+    <div class="call-panel">
+        <div class="card">
+            <div>@activeSession.Counter.Name — @activeSession.Service.NameAr</div>
+            <div class="stat-tile" style="display:inline-block;margin-top:10px;">
+                <div class="value">@waitingCount</div>
+                <div class="label">بانتظار هذه الخدمة</div>
+            </div>
+        </div>
+
+        @if (currentTicket is not null)
+        {
+            <div class="current-ticket">@currentTicket.Number</div>
+            <div>الحالة: @StatusLabel(currentTicket.Status)</div>
+
+            <div class="call-actions">
+                <button class="btn btn-secondary" @onclick="RecallAsync">إعادة نداء</button>
+
+                @if (currentTicket.Status == TicketStatus.Called)
+                {
+                    <button class="btn btn-primary" @onclick="StartServiceAsync">بدء الخدمة</button>
+                    <button class="btn btn-danger" @onclick="SkipAsync">لم يحضر</button>
+                }
+
+                <button class="btn btn-accent" @onclick="ShowTransfer">تحويل</button>
+                <button class="btn btn-primary" @onclick="CompleteAsync">إنهاء الخدمة</button>
+            </div>
+
+            @if (showTransfer)
+            {
+                <div class="card" style="margin-top:16px;">
+                    <label>تحويل المريض إلى</label>
+                    <select class="form-control" @bind="transferServiceId">
+                        <option value="">-- اختر الخدمة --</option>
+                        @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
+                        {
+                            <option value="@service.Id">@service.NameAr</option>
+                        }
+                    </select>
+                    <button class="btn btn-primary" style="margin-top:10px;" @onclick="TransferAsync">تأكيد التحويل</button>
+                </div>
+            }
+
+            <div class="form-group" style="margin-top:16px;">
+                <label>ملاحظات (اختياري عند الإنهاء)</label>
+                <textarea class="form-control" rows="2" @bind="notes"></textarea>
+            </div>
+        }
+        else
+        {
+            <button class="btn btn-primary" style="margin-top:20px;" @onclick="CallNextAsync" disabled="@isBusy">
+                استدعاء التالي
+            </button>
+        }
+
+        <div style="margin-top:24px;">
+            <button class="btn btn-secondary" @onclick="EndSessionAsync">إنهاء الجلسة</button>
+        </div>
+    </div>
+}
+
+@code {
+    private Guid employeeId;
+    private List<Counter> counters = new();
+    private List<Service> allServices = new();
+    private List<Service> availableServices = new();
+    private string selectedCounterId = string.Empty;
+    private string selectedServiceId = string.Empty;
+
+    private CounterSession? activeSession;
+    private TicketDto? currentTicket;
+    private int waitingCount;
+    private bool isBusy;
+    private bool showTransfer;
+    private string transferServiceId = string.Empty;
+    private string? notes;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        employeeId = Guid.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        counters = await Db.Counters
+            .Include(c => c.CounterServices).ThenInclude(cs => cs.Service)
+            .Where(c => c.IsActive)
+            .ToListAsync();
+        allServices = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
+
+        Bus.QueueChanged += OnQueueChangedAsync;
+
+        var existing = await QueueService.GetActiveSessionAsync(employeeId);
+        if (existing is not null)
+        {
+            activeSession = existing;
+            waitingCount = await QueueService.GetWaitingCountAsync(existing.ServiceId);
+        }
+    }
+
+    private void OnSelectedCounterChanged()
+    {
+        availableServices = counters.FirstOrDefault(c => c.Id.ToString() == selectedCounterId)
+            ?.CounterServices.Select(cs => cs.Service).Where(s => s.IsActive).ToList() ?? new();
+        selectedServiceId = availableServices.Count == 1 ? availableServices[0].Id.ToString() : string.Empty;
+    }
+
+    private async Task StartSessionAsync()
+    {
+        errorMessage = null;
+        if (!Guid.TryParse(selectedCounterId, out var counterId) || !Guid.TryParse(selectedServiceId, out var serviceId))
+        {
+            errorMessage = "الرجاء اختيار الشباك والخدمة";
+            return;
+        }
+
+        try
+        {
+            var session = await QueueService.StartSessionAsync(employeeId, counterId, serviceId);
+            activeSession = await QueueService.GetActiveSessionAsync(employeeId);
+            waitingCount = await QueueService.GetWaitingCountAsync(serviceId);
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task CallNextAsync()
+    {
+        if (activeSession is null || isBusy)
+        {
+            return;
+        }
+
+        isBusy = true;
+        errorMessage = null;
+        try
+        {
+            var ticket = await QueueService.CallNextAsync(activeSession.Id);
+            if (ticket is null)
+            {
+                errorMessage = "لا يوجد مرضى بانتظار هذه الخدمة حالياً";
+            }
+            else
+            {
+                currentTicket = ticket;
+                notes = null;
+                showTransfer = false;
+            }
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task RecallAsync()
+    {
+        if (currentTicket is null) return;
+        try
+        {
+            currentTicket = await QueueService.RecallAsync(currentTicket.Id);
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task StartServiceAsync()
+    {
+        if (currentTicket is null) return;
+        try
+        {
+            currentTicket = await QueueService.StartServiceAsync(currentTicket.Id);
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task CompleteAsync()
+    {
+        if (currentTicket is null) return;
+        try
+        {
+            await QueueService.CompleteAsync(currentTicket.Id, notes);
+            currentTicket = null;
+            notes = null;
+            showTransfer = false;
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task SkipAsync()
+    {
+        if (currentTicket is null) return;
+        try
+        {
+            await QueueService.SkipAsync(currentTicket.Id);
+            currentTicket = null;
+            showTransfer = false;
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private void ShowTransfer() => showTransfer = !showTransfer;
+
+    private async Task TransferAsync()
+    {
+        if (currentTicket is null || !Guid.TryParse(transferServiceId, out var targetServiceId))
+        {
+            errorMessage = "الرجاء اختيار الخدمة المطلوب التحويل إليها";
+            return;
+        }
+
+        try
+        {
+            await QueueService.TransferAsync(currentTicket.Id, targetServiceId);
+            currentTicket = null;
+            showTransfer = false;
+            transferServiceId = string.Empty;
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task EndSessionAsync()
+    {
+        if (activeSession is null) return;
+        await QueueService.EndSessionAsync(activeSession.Id);
+        activeSession = null;
+        currentTicket = null;
+        selectedCounterId = string.Empty;
+        selectedServiceId = string.Empty;
+    }
+
+    private async Task OnQueueChangedAsync(Guid serviceId)
+    {
+        if (activeSession is not null && serviceId == activeSession.ServiceId)
+        {
+            waitingCount = await QueueService.GetWaitingCountAsync(serviceId);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private static string StatusLabel(TicketStatus status) => status switch
+    {
+        TicketStatus.Called => "تم النداء",
+        TicketStatus.InService => "قيد الخدمة",
+        _ => status.ToString(),
+    };
+
+    public void Dispose()
+    {
+        Bus.QueueChanged -= OnQueueChangedAsync;
+    }
+}

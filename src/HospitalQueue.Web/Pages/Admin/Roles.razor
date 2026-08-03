@@ -1,0 +1,138 @@
+@page "/admin/roles"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@using System.Security.Claims
+@using HospitalQueue.Domain.Entities
+@using Microsoft.AspNetCore.Identity
+@inject RoleManager<ApplicationRole> RoleManager
+
+<PageTitle>الأدوار والصلاحيات</PageTitle>
+
+<h1>الأدوار والصلاحيات</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-error">@errorMessage</div>
+}
+
+<div class="card">
+    <h3>إضافة دور جديد</h3>
+    <div class="grid grid-3">
+        <div class="form-group">
+            <label>اسم الدور</label>
+            <input class="form-control" @bind="newRoleName" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" @onclick="AddRoleAsync">إضافة</button>
+        </div>
+    </div>
+</div>
+
+@foreach (var row in roleRows)
+{
+    <div class="card" @key="row.Role.Id">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h3>@row.Role.Name</h3>
+            @if (!AppRoles.All.Contains(row.Role.Name))
+            {
+                <button class="btn btn-danger" @onclick="() => DeleteRoleAsync(row)">حذف الدور</button>
+            }
+        </div>
+
+        <div class="grid grid-3">
+            @foreach (var permission in AppPermissions.All)
+            {
+                var granted = row.Permissions.Contains(permission);
+                <label style="font-weight:normal;">
+                    <input type="checkbox" checked="@granted" @onchange="e => TogglePermissionAsync(row, permission, (bool)e.Value!)" />
+                    @PermissionLabel(permission)
+                </label>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private class RoleRow
+    {
+        public ApplicationRole Role { get; set; } = null!;
+        public HashSet<string> Permissions { get; set; } = new();
+    }
+
+    private List<RoleRow> roleRows = new();
+    private string newRoleName = string.Empty;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        roleRows.Clear();
+        foreach (var role in RoleManager.Roles.OrderBy(r => r.Name).ToList())
+        {
+            var claims = await RoleManager.GetClaimsAsync(role);
+            roleRows.Add(new RoleRow
+            {
+                Role = role,
+                Permissions = claims.Where(c => c.Type == AppPermissions.ClaimType).Select(c => c.Value).ToHashSet(),
+            });
+        }
+    }
+
+    private async Task AddRoleAsync()
+    {
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(newRoleName))
+        {
+            errorMessage = "الرجاء إدخال اسم الدور";
+            return;
+        }
+
+        if (await RoleManager.RoleExistsAsync(newRoleName))
+        {
+            errorMessage = "يوجد دور بنفس الاسم";
+            return;
+        }
+
+        await RoleManager.CreateAsync(new ApplicationRole(newRoleName.Trim()));
+        newRoleName = string.Empty;
+        await LoadAsync();
+    }
+
+    private async Task DeleteRoleAsync(RoleRow row)
+    {
+        await RoleManager.DeleteAsync(row.Role);
+        await LoadAsync();
+    }
+
+    private async Task TogglePermissionAsync(RoleRow row, string permission, bool grant)
+    {
+        if (grant)
+        {
+            await RoleManager.AddClaimAsync(row.Role, new Claim(AppPermissions.ClaimType, permission));
+            row.Permissions.Add(permission);
+        }
+        else
+        {
+            var claims = await RoleManager.GetClaimsAsync(row.Role);
+            var existing = claims.FirstOrDefault(c => c.Type == AppPermissions.ClaimType && c.Value == permission);
+            if (existing is not null)
+            {
+                await RoleManager.RemoveClaimAsync(row.Role, existing);
+            }
+            row.Permissions.Remove(permission);
+        }
+    }
+
+    private static string PermissionLabel(string permission) => permission switch
+    {
+        AppPermissions.UsersManage => "إدارة المستخدمين",
+        AppPermissions.RolesManage => "إدارة الأدوار والصلاحيات",
+        AppPermissions.ServicesManage => "إدارة الخدمات والعيادات",
+        AppPermissions.CountersManage => "إدارة الشبابيك",
+        AppPermissions.TicketsCall => "نداء المرضى",
+        AppPermissions.TicketsCreate => "إصدار التذاكر (الكشك)",
+        AppPermissions.ReportsView => "عرض التقارير",
+        AppPermissions.DisplayView => "عرض شاشة النداء العامة",
+        _ => permission,
+    };
+}

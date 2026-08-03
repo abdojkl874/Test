@@ -1,0 +1,97 @@
+@page "/admin"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@inject IReportService ReportService
+
+<PageTitle>لوحة التحكم</PageTitle>
+
+<h1>لوحة التحكم</h1>
+
+<div class="card">
+    <div class="grid grid-3">
+        <div class="form-group">
+            <label>من تاريخ</label>
+            <input type="date" class="form-control" @bind="fromDate" />
+        </div>
+        <div class="form-group">
+            <label>إلى تاريخ</label>
+            <input type="date" class="form-control" @bind="toDate" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" @onclick="LoadAsync">تحديث</button>
+        </div>
+    </div>
+</div>
+
+@if (summary is not null)
+{
+    <div class="grid grid-3">
+        <div class="stat-tile"><div class="value">@summary.WaitingNow</div><div class="label">بالانتظار الآن</div></div>
+        <div class="stat-tile"><div class="value">@summary.InServiceNow</div><div class="label">قيد الخدمة الآن</div></div>
+        <div class="stat-tile"><div class="value">@summary.ServiceStats.Sum(s => s.TicketCount)</div><div class="label">إجمالي التذاكر بالفترة</div></div>
+    </div>
+
+    <div class="grid grid-2">
+        <div class="card">
+            <h3>عدد التذاكر لكل خدمة / عيادة</h3>
+            <BarChart Items="@summary.ServiceStats.Select(s => (s.ServiceName, (double)s.TicketCount)).ToList()" />
+        </div>
+        <div class="card">
+            <h3>متوسط زمن الانتظار (دقيقة)</h3>
+            <BarChart Items="@summary.ServiceStats.Select(s => (s.ServiceName, s.AverageWaitMinutes)).ToList()" ValueFormat="0.0" />
+        </div>
+        <div class="card">
+            <h3>متوسط زمن الخدمة (دقيقة)</h3>
+            <BarChart Items="@summary.ServiceStats.Select(s => (s.ServiceName, s.AverageServiceMinutes)).ToList()" ValueFormat="0.0" />
+        </div>
+        <div class="card">
+            <h3>عدد التذاكر لكل موظف</h3>
+            <BarChart Items="@summary.EmployeeStats.Select(s => (s.EmployeeName, (double)s.TicketsHandled)).ToList()" />
+        </div>
+        <div class="card">
+            <h3>عدد التذاكر لكل شباك</h3>
+            <BarChart Items="@summary.CounterStats.Select(s => (s.CounterName, (double)s.TicketsHandled)).ToList()" />
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>تفاصيل الخدمات</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>الخدمة</th>
+                    <th>العدد</th>
+                    <th>مكتملة</th>
+                    <th>متخطاة</th>
+                    <th>متوسط الانتظار (د)</th>
+                    <th>متوسط الخدمة (د)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var s in summary.ServiceStats)
+                {
+                    <tr>
+                        <td>@s.ServiceName</td>
+                        <td>@s.TicketCount</td>
+                        <td>@s.CompletedCount</td>
+                        <td>@s.SkippedCount</td>
+                        <td>@s.AverageWaitMinutes</td>
+                        <td>@s.AverageServiceMinutes</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private DateTime fromDate = DateTime.Today;
+    private DateTime toDate = DateTime.Today;
+    private DashboardSummaryDto? summary;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        summary = await ReportService.GetDashboardAsync(DateOnly.FromDateTime(fromDate), DateOnly.FromDateTime(toDate));
+    }
+}

@@ -1,0 +1,43 @@
+@inherits LayoutComponentBase
+
+<div class="app-shell">
+    <header class="app-header">
+        <div class="app-title">نظام إدارة طابور المشفى</div>
+
+        <AuthorizeView>
+            <Authorized>
+                <nav class="app-nav">
+                    @if (context.User.IsInRole(AppRoles.Admin))
+                    {
+                        <a href="/admin">لوحة التحكم</a>
+                        <a href="/admin/users">المستخدمون</a>
+                        <a href="/admin/roles">الأدوار والصلاحيات</a>
+                        <a href="/admin/services">الخدمات والعيادات</a>
+                        <a href="/admin/counters">الشبابيك</a>
+                    }
+                    @if (context.User.IsInRole(AppRoles.Employee) || context.User.IsInRole(AppRoles.Admin))
+                    {
+                        <a href="/employee/call">شاشة النداء</a>
+                    }
+                    @if (context.User.IsInRole(AppRoles.Kiosk) || context.User.IsInRole(AppRoles.Admin))
+                    {
+                        <a href="/kiosk">شاشة الكشك</a>
+                    }
+                    @if (context.User.IsInRole(AppRoles.Display) || context.User.IsInRole(AppRoles.Admin))
+                    {
+                        <a href="/display">شاشة العرض</a>
+                    }
+                </nav>
+
+                <div class="app-user">
+                    <span>@context.User.Identity?.Name</span>
+                    <a href="/Account/Logout">خروج</a>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </header>
+
+    <main class="app-body">
+        @Body
+    </main>
+</div>

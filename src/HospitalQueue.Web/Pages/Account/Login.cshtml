@@ -1,0 +1,30 @@
+@page
+@model HospitalQueue.Web.Pages.Account.LoginModel
+
+<div class="auth-card">
+    <h1>نظام إدارة طابور المشفى</h1>
+    <h2>تسجيل الدخول</h2>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-error">@Model.ErrorMessage</div>
+    }
+
+    <form method="post">
+        <input type="hidden" asp-for="ReturnUrl" />
+
+        <div class="form-group">
+            <label asp-for="Username">اسم المستخدم</label>
+            <input asp-for="Username" class="form-control" autofocus autocomplete="username" />
+            <span asp-validation-for="Username" class="field-error"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Password">كلمة المرور</label>
+            <input asp-for="Password" type="password" class="form-control" autocomplete="current-password" />
+            <span asp-validation-for="Password" class="field-error"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block">دخول</button>
+    </form>
+</div>

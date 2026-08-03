@@ -1,0 +1,414 @@
+:root {
+    --color-primary: #0f6e5b;
+    --color-primary-dark: #0a4f42;
+    --color-accent: #e0a800;
+    --color-danger: #c0392b;
+    --color-bg: #f3f6f5;
+    --color-card: #ffffff;
+    --color-border: #dfe6e4;
+    --color-text: #1c2b28;
+    --color-muted: #6b7c78;
+    --radius: 10px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+    direction: rtl;
+}
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ---------- App shell ---------- */
+.app-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.app-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    background: var(--color-primary);
+    color: #fff;
+    padding: 12px 24px;
+    flex-wrap: wrap;
+}
+
+.app-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.app-nav {
+    display: flex;
+    gap: 16px;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.app-nav a {
+    color: #eafff9;
+}
+
+.app-nav a:hover {
+    color: #fff;
+}
+
+.app-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.app-user a {
+    color: #ffe9b3;
+}
+
+.app-body {
+    flex: 1;
+    padding: 24px;
+}
+
+/* ---------- Auth pages ---------- */
+.auth-body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+}
+
+.auth-card {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    padding: 32px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, .2);
+    text-align: center;
+}
+
+.auth-card h1 {
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    margin-bottom: 4px;
+}
+
+.auth-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+/* ---------- Forms & buttons ---------- */
+.form-group {
+    text-align: right;
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.form-control, select.form-control, textarea.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 1rem;
+}
+
+.field-error {
+    color: var(--color-danger);
+    font-size: .85rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background: var(--color-primary-dark);
+}
+
+.btn-accent {
+    background: var(--color-accent);
+    color: #402d00;
+}
+
+.btn-danger {
+    background: var(--color-danger);
+    color: #fff;
+}
+
+.btn-secondary {
+    background: #e5eceb;
+    color: var(--color-text);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+.btn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.alert {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+}
+
+.alert-error {
+    background: #fbe4e1;
+    color: var(--color-danger);
+}
+
+.alert-success {
+    background: #e1f5ec;
+    color: var(--color-primary-dark);
+}
+
+/* ---------- Cards / tables ---------- */
+.card {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card h3 {
+    margin-top: 0;
+}
+
+table.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table.data-table th, table.data-table td {
+    text-align: right;
+    padding: 10px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+table.data-table th {
+    background: #eef4f2;
+}
+
+.grid {
+    display: grid;
+    gap: 16px;
+}
+
+.grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.grid-3 {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stat-tile {
+    background: var(--color-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 16px;
+    text-align: center;
+}
+
+.stat-tile .value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.stat-tile .label {
+    color: var(--color-muted);
+}
+
+/* ---------- Kiosk ---------- */
+.kiosk-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.kiosk-service-btn {
+    background: var(--color-card);
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius);
+    padding: 30px 16px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-primary-dark);
+    cursor: pointer;
+}
+
+.kiosk-service-btn:hover {
+    background: var(--color-primary);
+    color: #fff;
+}
+
+.kiosk-ticket {
+    text-align: center;
+    padding: 40px;
+}
+
+.kiosk-ticket .number {
+    font-size: 4rem;
+    font-weight: 800;
+    color: var(--color-primary);
+}
+
+/* ---------- Display board ---------- */
+.display-board {
+    background: #0b1f1c;
+    color: #fff;
+    min-height: 100vh;
+    padding: 24px;
+    margin: -24px;
+}
+
+.display-board .board-title {
+    text-align: center;
+    font-size: 2rem;
+    margin-bottom: 24px;
+    color: #d9f5ec;
+}
+
+.display-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+}
+
+.display-tile {
+    background: #12332d;
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    border: 2px solid #1e5347;
+}
+
+.display-tile.flash {
+    animation: flash 1.2s ease-in-out 2;
+    border-color: var(--color-accent);
+}
+
+.display-tile .counter-name {
+    font-size: 1.1rem;
+    color: #9fd9c8;
+}
+
+.display-tile .ticket-number {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 8px 0;
+}
+
+.display-tile .service-name {
+    color: #cfe9df;
+}
+
+@keyframes flash {
+    0%, 100% { background: #12332d; }
+    50% { background: #2a5f4e; }
+}
+
+/* ---------- Bar chart ---------- */
+.barchart-row {
+    display: grid;
+    grid-template-columns: 140px 1fr 60px;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.barchart-label {
+    font-size: .9rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.barchart-track {
+    background: #eef4f2;
+    border-radius: 6px;
+    height: 16px;
+    overflow: hidden;
+}
+
+.barchart-bar {
+    background: var(--color-primary);
+    height: 100%;
+    border-radius: 6px;
+}
+
+.barchart-value {
+    text-align: left;
+    font-weight: 600;
+}
+
+.barchart-empty {
+    color: var(--color-muted);
+    text-align: center;
+    padding: 12px;
+}
+
+/* ---------- Employee call screen ---------- */
+.call-panel {
+    max-width: 600px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.call-panel .current-ticket {
+    font-size: 3.5rem;
+    font-weight: 800;
+    color: var(--color-primary);
+    margin: 20px 0;
+}
+
+.call-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+}

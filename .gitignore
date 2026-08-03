@@ -1,0 +1,20 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+appsettings.Development.json
+appsettings.*.local.json
+
+## Rider / VSCode
+.idea/
+.vscode/
+
+## OS
+.DS_Store
+Thumbs.db
+
+## EF Core
+*.db
+*.sqlite

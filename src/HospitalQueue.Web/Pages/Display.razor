@@ -1,0 +1,77 @@
+@page "/display"
+@attribute [Authorize(Roles = AppRoles.Display + "," + AppRoles.Admin)]
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject IQueueService QueueService
+@inject ApplicationDbContext Db
+@inject IJSRuntime JS
+@inject HospitalQueue.Web.Services.QueueEventBus Bus
+@implements IDisposable
+
+<PageTitle>شاشة العرض</PageTitle>
+
+<div class="display-board">
+    <div class="board-title">لوحة نداء المرضى</div>
+
+    <div class="display-grid">
+        @foreach (var counter in counters)
+        {
+            var evt = latestByCounter.TryGetValue(counter.Id, out var e) ? e : null;
+            <div @key="counter.Id" class="display-tile @(flashingCounters.Contains(counter.Id) ? "flash" : "")">
+                <div class="counter-name">@counter.Name</div>
+                <div class="ticket-number">@(evt?.Number ?? "—")</div>
+                <div class="service-name">@(evt?.ServiceName ?? "بانتظار أول نداء")</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<Counter> counters = new();
+    private readonly Dictionary<Guid, TicketCalledEvent> latestByCounter = new();
+    private readonly HashSet<Guid> flashingCounters = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        counters = await Db.Counters.Where(c => c.IsActive).OrderBy(c => c.Name).ToListAsync();
+
+        var recent = await QueueService.GetRecentlyCalledAsync(100);
+        foreach (var evt in recent.OrderBy(e => e.CalledAt))
+        {
+            latestByCounter[evt.CounterId] = evt;
+        }
+
+        Bus.TicketCalled += OnTicketCalledAsync;
+    }
+
+    private Task OnTicketCalledAsync(TicketCalledEvent evt)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            latestByCounter[evt.CounterId] = evt;
+            flashingCounters.Add(evt.CounterId);
+            StateHasChanged();
+
+            try
+            {
+                await JS.InvokeVoidAsync("hospitalQueueDisplay.ticketCalled", evt.Number, evt.CounterName);
+            }
+            catch
+            {
+                // best-effort audio/voice announcement only
+            }
+
+            await Task.Delay(2500);
+            flashingCounters.Remove(evt.CounterId);
+            StateHasChanged();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    public void Dispose()
+    {
+        Bus.TicketCalled -= OnTicketCalledAsync;
+    }
+}

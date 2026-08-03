@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: hospital_queue_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: hospital_queue
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - hospital_queue_data:/var/lib/postgresql/data
+
+volumes:
+  hospital_queue_data:

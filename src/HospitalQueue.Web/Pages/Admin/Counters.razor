@@ -1,0 +1,140 @@
+@page "/admin/counters"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+
+<PageTitle>الشبابيك</PageTitle>
+
+<h1>الشبابيك</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-error">@errorMessage</div>
+}
+
+<div class="card">
+    <h3>إضافة شباك جديد</h3>
+    <div class="grid grid-3">
+        <div class="form-group">
+            <label>الاسم</label>
+            <input class="form-control" @bind="newName" placeholder="مثال: شباك 4" />
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" @onclick="AddAsync">إضافة</button>
+        </div>
+    </div>
+</div>
+
+@foreach (var counter in counters)
+{
+    <div class="card" @key="counter.Id">
+        <div class="grid grid-2">
+            <div class="form-group">
+                <label>اسم الشباك</label>
+                <input class="form-control" @bind="counter.Name" />
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;gap:10px;">
+                <button class="btn btn-secondary" @onclick="() => SaveAsync(counter)">حفظ</button>
+                <button class="btn @(counter.IsActive ? "btn-danger" : "btn-primary")" @onclick="() => ToggleActiveAsync(counter)">
+                    @(counter.IsActive ? "تعطيل" : "تفعيل")
+                </button>
+            </div>
+        </div>
+
+        <label>الخدمات التي يخدمها هذا الشباك</label>
+        <div class="grid grid-3">
+            @foreach (var service in allServices)
+            {
+                var assigned = counter.CounterServices.Any(cs => cs.ServiceId == service.Id);
+                <label style="font-weight:normal;">
+                    <input type="checkbox" checked="@assigned" @onchange="e => ToggleServiceAsync(counter, service.Id, (bool)e.Value!)" />
+                    @service.NameAr
+                </label>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private List<Counter> counters = new();
+    private List<Service> allServices = new();
+    private string newName = string.Empty;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        counters = await Db.Counters
+            .Include(c => c.CounterServices)
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+        allServices = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
+    }
+
+    private async Task AddAsync()
+    {
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(newName))
+        {
+            errorMessage = "الرجاء إدخال اسم الشباك";
+            return;
+        }
+
+        if (await Db.Counters.AnyAsync(c => c.Name == newName))
+        {
+            errorMessage = "يوجد شباك بنفس الاسم";
+            return;
+        }
+
+        Db.Counters.Add(new Counter { Id = Guid.NewGuid(), Name = newName.Trim(), IsActive = true });
+
+        try
+        {
+            await Db.SaveChangesAsync();
+            newName = string.Empty;
+            await LoadAsync();
+        }
+        catch (DbUpdateException)
+        {
+            errorMessage = "تعذر إضافة الشباك";
+        }
+    }
+
+    private async Task SaveAsync(Counter counter)
+    {
+        errorMessage = null;
+        try
+        {
+            await Db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            errorMessage = "تعذر حفظ التعديلات";
+        }
+    }
+
+    private async Task ToggleActiveAsync(Counter counter)
+    {
+        counter.IsActive = !counter.IsActive;
+        await Db.SaveChangesAsync();
+    }
+
+    private async Task ToggleServiceAsync(Counter counter, Guid serviceId, bool assign)
+    {
+        var existing = counter.CounterServices.FirstOrDefault(cs => cs.ServiceId == serviceId);
+        if (assign && existing is null)
+        {
+            counter.CounterServices.Add(new CounterService { CounterId = counter.Id, ServiceId = serviceId });
+        }
+        else if (!assign && existing is not null)
+        {
+            counter.CounterServices.Remove(existing);
+            Db.Remove(existing);
+        }
+
+        await Db.SaveChangesAsync();
+    }
+}

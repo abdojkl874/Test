@@ -1,0 +1,217 @@
+@page "/admin/users"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@using HospitalQueue.Domain.Entities
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<ApplicationUser> UserManager
+@inject RoleManager<ApplicationRole> RoleManager
+
+<PageTitle>المستخدمون</PageTitle>
+
+<h1>المستخدمون</h1>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-error">@errorMessage</div>
+}
+@if (!string.IsNullOrEmpty(successMessage))
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+
+<div class="card">
+    <h3>إضافة مستخدم جديد</h3>
+    <div class="grid grid-3">
+        <div class="form-group">
+            <label>اسم المستخدم</label>
+            <input class="form-control" @bind="newUsername" />
+        </div>
+        <div class="form-group">
+            <label>الاسم الكامل</label>
+            <input class="form-control" @bind="newFullName" />
+        </div>
+        <div class="form-group">
+            <label>رقم الموظف (اختياري)</label>
+            <input class="form-control" @bind="newEmployeeCode" />
+        </div>
+        <div class="form-group">
+            <label>كلمة المرور المبدئية</label>
+            <input class="form-control" type="password" @bind="newPassword" />
+        </div>
+        <div class="form-group">
+            <label>الدور / نوع الشاشة</label>
+            <div>
+                @foreach (var role in AppRoles.All)
+                {
+                    <label style="font-weight:normal;margin-inline-end:12px;">
+                        <input type="checkbox" checked="@newRoles.Contains(role)" @onchange="e => ToggleNewRole(role, (bool)e.Value!)" />
+                        @role
+                    </label>
+                }
+            </div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end;">
+            <button class="btn btn-primary" @onclick="CreateAsync">إنشاء المستخدم</button>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>اسم المستخدم</th>
+                <th>الاسم الكامل</th>
+                <th>الأدوار</th>
+                <th>الحالة</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in userRows)
+            {
+                <tr @key="row.User.Id">
+                    <td>@row.User.UserName</td>
+                    <td>@row.User.FullName</td>
+                    <td>
+                        @foreach (var role in AppRoles.All)
+                        {
+                            <label style="font-weight:normal;margin-inline-end:10px;">
+                                <input type="checkbox" checked="@row.Roles.Contains(role)"
+                                       @onchange="e => ToggleUserRoleAsync(row, role, (bool)e.Value!)" />
+                                @role
+                            </label>
+                        }
+                    </td>
+                    <td>@(row.User.IsActive ? "مفعّل" : "معطّل")</td>
+                    <td style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <button class="btn @(row.User.IsActive ? "btn-danger" : "btn-primary")" @onclick="() => ToggleActiveAsync(row)">
+                            @(row.User.IsActive ? "تعطيل" : "تفعيل")
+                        </button>
+                        <input class="form-control" style="width:160px;" placeholder="كلمة مرور جديدة" @bind="row.NewPassword" />
+                        <button class="btn btn-secondary" @onclick="() => ResetPasswordAsync(row)">تصفير كلمة المرور</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private class UserRow
+    {
+        public ApplicationUser User { get; set; } = null!;
+        public List<string> Roles { get; set; } = new();
+        public string? NewPassword { get; set; }
+    }
+
+    private List<UserRow> userRows = new();
+    private string newUsername = string.Empty;
+    private string newFullName = string.Empty;
+    private string newEmployeeCode = string.Empty;
+    private string newPassword = string.Empty;
+    private HashSet<string> newRoles = new();
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync() => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        userRows.Clear();
+        foreach (var user in UserManager.Users.OrderBy(u => u.UserName).ToList())
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            userRows.Add(new UserRow { User = user, Roles = roles.ToList() });
+        }
+    }
+
+    private void ToggleNewRole(string role, bool assign)
+    {
+        if (assign) newRoles.Add(role);
+        else newRoles.Remove(role);
+    }
+
+    private async Task CreateAsync()
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(newUsername) || string.IsNullOrWhiteSpace(newFullName) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            errorMessage = "الرجاء تعبئة اسم المستخدم والاسم الكامل وكلمة المرور";
+            return;
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = newUsername.Trim(),
+            FullName = newFullName.Trim(),
+            EmployeeCode = string.IsNullOrWhiteSpace(newEmployeeCode) ? null : newEmployeeCode.Trim(),
+            IsActive = true,
+            EmailConfirmed = true,
+        };
+
+        var result = await UserManager.CreateAsync(user, newPassword);
+        if (!result.Succeeded)
+        {
+            errorMessage = string.Join("، ", result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        if (newRoles.Any())
+        {
+            await UserManager.AddToRolesAsync(user, newRoles);
+        }
+
+        successMessage = "تم إنشاء المستخدم بنجاح";
+        newUsername = string.Empty;
+        newFullName = string.Empty;
+        newEmployeeCode = string.Empty;
+        newPassword = string.Empty;
+        newRoles.Clear();
+        await LoadAsync();
+    }
+
+    private async Task ToggleUserRoleAsync(UserRow row, string role, bool assign)
+    {
+        if (assign)
+        {
+            await UserManager.AddToRoleAsync(row.User, role);
+            row.Roles.Add(role);
+        }
+        else
+        {
+            await UserManager.RemoveFromRoleAsync(row.User, role);
+            row.Roles.Remove(role);
+        }
+    }
+
+    private async Task ToggleActiveAsync(UserRow row)
+    {
+        row.User.IsActive = !row.User.IsActive;
+        await UserManager.UpdateAsync(row.User);
+    }
+
+    private async Task ResetPasswordAsync(UserRow row)
+    {
+        errorMessage = null;
+        successMessage = null;
+
+        if (string.IsNullOrWhiteSpace(row.NewPassword))
+        {
+            errorMessage = "الرجاء إدخال كلمة مرور جديدة";
+            return;
+        }
+
+        var token = await UserManager.GeneratePasswordResetTokenAsync(row.User);
+        var result = await UserManager.ResetPasswordAsync(row.User, token, row.NewPassword);
+        if (!result.Succeeded)
+        {
+            errorMessage = string.Join("، ", result.Errors.Select(e => e.Description));
+            return;
+        }
+
+        successMessage = $"تم تحديث كلمة مرور {row.User.UserName}";
+        row.NewPassword = null;
+    }
+}

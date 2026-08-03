@@ -1,0 +1,11 @@
+using Microsoft.AspNetCore.Identity;
+
+namespace HospitalQueue.Domain.Entities;
+
+public class ApplicationUser : IdentityUser<Guid>
+{
+    public string FullName { get; set; } = string.Empty;
+    public string? EmployeeCode { get; set; }
+    public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}

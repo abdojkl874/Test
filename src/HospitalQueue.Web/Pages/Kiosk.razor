@@ -1,0 +1,107 @@
+@page "/kiosk"
+@attribute [Authorize(Roles = AppRoles.Kiosk + "," + AppRoles.Admin)]
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject IQueueService QueueService
+@inject ApplicationDbContext Db
+@inject IJSRuntime JS
+@implements IDisposable
+
+<PageTitle>شاشة الكشك</PageTitle>
+
+@if (issuedTicket is null)
+{
+    <h1 style="text-align:center;">الرجاء اختيار الخدمة المطلوبة</h1>
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-error">@errorMessage</div>
+    }
+
+    <div class="kiosk-grid">
+        @foreach (var service in services)
+        {
+            <button class="kiosk-service-btn" @onclick="() => IssueTicketAsync(service.Id)" disabled="@isBusy">
+                @service.NameAr
+            </button>
+        }
+    </div>
+}
+else
+{
+    <div class="kiosk-ticket card">
+        <div>رقم تذكرتك</div>
+        <div class="number">@issuedTicket.Number</div>
+        <div>@issuedTicket.ServiceName</div>
+        <p>يرجى الانتظار حتى يتم مناداة رقمك على شاشة العرض</p>
+
+        @if (!printSucceeded)
+        {
+            <div class="alert alert-error">تعذر الاتصال بالطابعة، يرجى تدوين الرقم يدوياً</div>
+        }
+
+        <button class="btn btn-primary" @onclick="Reset">تذكرة جديدة</button>
+    </div>
+}
+
+@code {
+    private List<Service> services = new();
+    private TicketDto? issuedTicket;
+    private string? errorMessage;
+    private bool isBusy;
+    private bool printSucceeded = true;
+    private System.Timers.Timer? resetTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        services = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
+    }
+
+    private async Task IssueTicketAsync(Guid serviceId)
+    {
+        if (isBusy)
+        {
+            return;
+        }
+
+        isBusy = true;
+        errorMessage = null;
+        try
+        {
+            issuedTicket = await QueueService.CreateTicketAsync(serviceId);
+            printSucceeded = await JS.InvokeAsync<bool>(
+                "hospitalQueuePrint.printTicket",
+                issuedTicket.Number,
+                issuedTicket.ServiceName,
+                DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+
+            resetTimer?.Dispose();
+            resetTimer = new System.Timers.Timer(10000) { AutoReset = false };
+            resetTimer.Elapsed += async (_, _) => await InvokeAsync(Reset);
+            resetTimer.Start();
+        }
+        catch (QueueOperationException ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void Reset()
+    {
+        issuedTicket = null;
+        printSucceeded = true;
+        resetTimer?.Dispose();
+        resetTimer = null;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        resetTimer?.Dispose();
+    }
+}
