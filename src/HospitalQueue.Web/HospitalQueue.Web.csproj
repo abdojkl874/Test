@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MudBlazor" Version="7.15.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\HospitalQueue.Application\HospitalQueue.Application.csproj" />
   </ItemGroup>
 

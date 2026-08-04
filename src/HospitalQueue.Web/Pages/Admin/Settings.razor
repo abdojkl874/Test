@@ -1,0 +1,40 @@
+@page "/admin/settings"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@layout AdminLayout
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>الإعدادات العامة</PageTitle>
+
+<MudText Typo="Typo.h4" Class="hq-page-title">الإعدادات العامة</MudText>
+
+@if (settings is not null)
+{
+    <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
+        <MudTextField @bind-Value="settings.OrgNameAr" Label="اسم الجهة (يظهر في التذاكر وشاشة العرض)" Variant="Variant.Outlined" Class="mb-4" />
+
+        <MudSwitch @bind-Value="settings.TickerEnabled" Color="Color.Primary" Label="تفعيل الشريط الإخباري في شاشة العرض" Class="mb-3" />
+
+        <MudTextField @bind-Value="settings.TickerText" Label="نص الشريط الإخباري" Variant="Variant.Outlined" Lines="2" Class="mb-4" />
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">حفظ</MudButton>
+    </MudPaper>
+}
+
+@code {
+    private OrganizationSettings? settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        settings = await Db.OrganizationSettings.FirstOrDefaultAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        await Db.SaveChangesAsync();
+        Snackbar.Add("تم حفظ الإعدادات", Severity.Success);
+    }
+}

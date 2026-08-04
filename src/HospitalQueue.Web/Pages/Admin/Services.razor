@@ -1,73 +1,62 @@
 @page "/admin/services"
 @attribute [Authorize(Roles = AppRoles.Admin)]
+@layout AdminLayout
 @using HospitalQueue.Domain.Entities
 @using HospitalQueue.Infrastructure.Data
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
+@inject ISnackbar Snackbar
 
 <PageTitle>الخدمات والعيادات</PageTitle>
 
-<h1>الخدمات والعيادات</h1>
+<MudText Typo="Typo.h4" Class="hq-page-title">الخدمات والعيادات</MudText>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-error">@errorMessage</div>
-}
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudText Typo="Typo.subtitle1" Class="mb-3">إضافة خدمة/عيادة جديدة</MudText>
+    <MudGrid AlignItems="Center">
+        <MudItem xs="12" sm="5">
+            <MudTextField @bind-Value="newName" Label="الاسم" Variant="Variant.Outlined" Placeholder="مثال: الباطنية" />
+        </MudItem>
+        <MudItem xs="12" sm="3">
+            <MudTextField @bind-Value="newCode" Label="الرمز" Variant="Variant.Outlined" MaxLength="10" HelperText="يستخدم في رقم التذكرة، مثال A" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync" StartIcon="@Icons.Material.Filled.Add">إضافة</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
-<div class="card">
-    <h3>إضافة خدمة/عيادة جديدة</h3>
-    <div class="grid grid-3">
-        <div class="form-group">
-            <label>الاسم</label>
-            <input class="form-control" @bind="newName" placeholder="مثال: الباطنية" />
-        </div>
-        <div class="form-group">
-            <label>الرمز (يُستخدم في رقم التذكرة، مثال A)</label>
-            <input class="form-control" @bind="newCode" maxlength="10" />
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;">
-            <button class="btn btn-primary" @onclick="AddAsync">إضافة</button>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>الاسم</th>
-                <th>الرمز</th>
-                <th>الترتيب</th>
-                <th>الحالة</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var service in services)
-            {
-                <tr @key="service.Id">
-                    <td><input class="form-control" @bind="service.NameAr" /></td>
-                    <td><input class="form-control" style="width:70px" @bind="service.Code" maxlength="10" /></td>
-                    <td><input type="number" class="form-control" style="width:80px" @bind="service.DisplayOrder" /></td>
-                    <td>@(service.IsActive ? "مفعّلة" : "معطّلة")</td>
-                    <td style="display:flex;gap:8px;">
-                        <button class="btn btn-secondary" @onclick="() => SaveAsync(service)">حفظ</button>
-                        <button class="btn @(service.IsActive ? "btn-danger" : "btn-primary")" @onclick="() => ToggleActiveAsync(service)">
-                            @(service.IsActive ? "تعطيل" : "تفعيل")
-                        </button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-    <p style="color:var(--color-muted);">يتم تعطيل الخدمة بدلاً من حذفها للحفاظ على سجل التذاكر السابقة.</p>
-</div>
+<MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudTable Items="services" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>الاسم</MudTh>
+            <MudTh>الرمز</MudTh>
+            <MudTh>الترتيب</MudTh>
+            <MudTh>الحالة</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="الاسم"><MudTextField T="string" @bind-Value="context.NameAr" Variant="Variant.Text" /></MudTd>
+            <MudTd DataLabel="الرمز"><MudTextField T="string" @bind-Value="context.Code" Variant="Variant.Text" MaxLength="10" Style="width:80px;" /></MudTd>
+            <MudTd DataLabel="الترتيب"><MudNumericField T="int" @bind-Value="context.DisplayOrder" Variant="Variant.Text" Style="width:80px;" /></MudTd>
+            <MudTd DataLabel="الحالة">
+                <MudChip T="string" Class="@(context.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.IsActive ? "مفعّلة" : "معطّلة")</MudChip>
+            </MudTd>
+            <MudTd>
+                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => SaveAsync(context)" Class="me-2">حفظ</MudButton>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="@(context.IsActive ? Color.Error : Color.Success)" OnClick="() => ToggleActiveAsync(context)">
+                    @(context.IsActive ? "تعطيل" : "تفعيل")
+                </MudButton>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+    <MudText Typo="Typo.caption" Class="mt-3" Style="color:var(--hq-muted);">يتم تعطيل الخدمة بدلاً من حذفها للحفاظ على سجل التذاكر السابقة.</MudText>
+</MudPaper>
 
 @code {
     private List<Service> services = new();
     private string newName = string.Empty;
     private string newCode = string.Empty;
-    private string? errorMessage;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -78,16 +67,15 @@
 
     private async Task AddAsync()
     {
-        errorMessage = null;
         if (string.IsNullOrWhiteSpace(newName) || string.IsNullOrWhiteSpace(newCode))
         {
-            errorMessage = "الرجاء إدخال الاسم والرمز";
+            Snackbar.Add("الرجاء إدخال الاسم والرمز", Severity.Warning);
             return;
         }
 
         if (await Db.Services.AnyAsync(s => s.Code == newCode))
         {
-            errorMessage = "هذا الرمز مستخدم مسبقاً";
+            Snackbar.Add("هذا الرمز مستخدم مسبقاً", Severity.Warning);
             return;
         }
 
@@ -106,23 +94,24 @@
             newName = string.Empty;
             newCode = string.Empty;
             await LoadAsync();
+            Snackbar.Add("تمت الإضافة", Severity.Success);
         }
         catch (DbUpdateException)
         {
-            errorMessage = "تعذر حفظ الخدمة، تأكد من عدم تكرار الرمز";
+            Snackbar.Add("تعذر حفظ الخدمة، تأكد من عدم تكرار الرمز", Severity.Error);
         }
     }
 
     private async Task SaveAsync(Service service)
     {
-        errorMessage = null;
         try
         {
             await Db.SaveChangesAsync();
+            Snackbar.Add("تم الحفظ", Severity.Success);
         }
         catch (DbUpdateException)
         {
-            errorMessage = "تعذر حفظ التعديلات";
+            Snackbar.Add("تعذر حفظ التعديلات", Severity.Error);
         }
     }
 

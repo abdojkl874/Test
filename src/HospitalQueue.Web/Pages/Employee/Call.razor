@@ -8,109 +8,108 @@
 @inject ApplicationDbContext Db
 @inject AuthenticationStateProvider AuthStateProvider
 @inject HospitalQueue.Web.Services.QueueEventBus Bus
+@inject ISnackbar Snackbar
 @implements IDisposable
 
 <PageTitle>شاشة النداء</PageTitle>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-error">@errorMessage</div>
-}
+<div class="hq-call-shell">
+    @if (activeSession is null)
+    {
+        <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+            <MudText Typo="Typo.h5" Class="mb-4">بدء جلسة عمل</MudText>
 
-@if (activeSession is null)
-{
-    <div class="card" style="max-width:500px;margin:0 auto;">
-        <h3>بدء جلسة عمل</h3>
-
-        <div class="form-group">
-            <label>الشباك</label>
-            <select class="form-control" @bind="selectedCounterId" @bind:after="OnSelectedCounterChanged">
-                <option value="">-- اختر الشباك --</option>
+            <MudSelect T="string" Label="الشباك" @bind-Value="selectedCounterId" @bind-Value:after="OnSelectedCounterChangedAsync"
+                       Variant="Variant.Outlined" Class="mb-4">
                 @foreach (var counter in counters)
                 {
-                    <option value="@counter.Id">@counter.Name</option>
+                    <MudSelectItem Value="@counter.Id.ToString()">@counter.Name</MudSelectItem>
                 }
-            </select>
-        </div>
+            </MudSelect>
 
-        @if (availableServices.Any())
-        {
-            <div class="form-group">
-                <label>الخدمة / العيادة</label>
-                <select class="form-control" @bind="selectedServiceId">
-                    <option value="">-- اختر الخدمة --</option>
+            @if (availableServices.Any())
+            {
+                <MudSelect T="string" Label="الخدمة / العيادة" @bind-Value="selectedServiceId" Variant="Variant.Outlined" Class="mb-4">
                     @foreach (var service in availableServices)
                     {
-                        <option value="@service.Id">@service.NameAr</option>
+                        <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
                     }
-                </select>
-            </div>
-        }
+                </MudSelect>
+            }
 
-        <button class="btn btn-primary btn-block" @onclick="StartSessionAsync">بدء العمل</button>
-    </div>
-}
-else
-{
-    <div class="call-panel">
-        <div class="card">
-            <div>@activeSession.Counter.Name — @activeSession.Service.NameAr</div>
-            <div class="stat-tile" style="display:inline-block;margin-top:10px;">
-                <div class="value">@waitingCount</div>
-                <div class="label">بانتظار هذه الخدمة</div>
-            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="StartSessionAsync">بدء العمل</MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <div class="hq-window-card mb-4">
+            <MudText Typo="Typo.h6" Color="Color.Inherit">@activeSession.Counter.Name — @activeSession.Service.NameAr</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Inherit" Class="mt-1">@waitingCount مريض بانتظار هذه الخدمة</MudText>
         </div>
 
         @if (currentTicket is not null)
         {
-            <div class="current-ticket">@currentTicket.Number</div>
-            <div>الحالة: @StatusLabel(currentTicket.Status)</div>
+            <MudPaper Class="pa-5 text-center" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <div class="hq-current-ticket">@currentTicket.Number</div>
+                <MudChip T="string" Class="@StatusChipClass(currentTicket.Status)">@StatusLabel(currentTicket.Status)</MudChip>
 
-            <div class="call-actions">
-                <button class="btn btn-secondary" @onclick="RecallAsync">إعادة نداء</button>
+                <MudGrid Class="mt-4" Justify="Justify.Center">
+                    <MudItem xs="6" sm="4">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
+                                   StartIcon="@Icons.Material.Filled.Campaign" OnClick="RecallAsync">إعادة نداء</MudButton>
+                    </MudItem>
+                    @if (currentTicket.Status == TicketStatus.Called)
+                    {
+                        <MudItem xs="6" sm="4">
+                            <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="hq-action-btn"
+                                       StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="StartServiceAsync">بدء الخدمة</MudButton>
+                        </MudItem>
+                        <MudItem xs="6" sm="4">
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="hq-action-btn"
+                                       StartIcon="@Icons.Material.Filled.PersonOff" OnClick="SkipAsync">لم يحضر</MudButton>
+                        </MudItem>
+                    }
+                    <MudItem xs="6" sm="4">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" Class="hq-action-btn"
+                                   StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="ShowTransfer">تحويل</MudButton>
+                    </MudItem>
+                    <MudItem xs="6" sm="4">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="hq-action-btn"
+                                   StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="CompleteAsync">إنهاء الخدمة</MudButton>
+                    </MudItem>
+                </MudGrid>
 
-                @if (currentTicket.Status == TicketStatus.Called)
+                @if (showTransfer)
                 {
-                    <button class="btn btn-primary" @onclick="StartServiceAsync">بدء الخدمة</button>
-                    <button class="btn btn-danger" @onclick="SkipAsync">لم يحضر</button>
+                    <MudPaper Class="pa-4 mt-4 text-start" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius);">
+                        <MudSelect T="string" Label="تحويل المريض إلى" @bind-Value="transferServiceId" Variant="Variant.Outlined" Class="mb-3">
+                            @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
+                            {
+                                <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
+                            }
+                        </MudSelect>
+                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TransferAsync">تأكيد التحويل</MudButton>
+                    </MudPaper>
                 }
 
-                <button class="btn btn-accent" @onclick="ShowTransfer">تحويل</button>
-                <button class="btn btn-primary" @onclick="CompleteAsync">إنهاء الخدمة</button>
-            </div>
-
-            @if (showTransfer)
-            {
-                <div class="card" style="margin-top:16px;">
-                    <label>تحويل المريض إلى</label>
-                    <select class="form-control" @bind="transferServiceId">
-                        <option value="">-- اختر الخدمة --</option>
-                        @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
-                        {
-                            <option value="@service.Id">@service.NameAr</option>
-                        }
-                    </select>
-                    <button class="btn btn-primary" style="margin-top:10px;" @onclick="TransferAsync">تأكيد التحويل</button>
-                </div>
-            }
-
-            <div class="form-group" style="margin-top:16px;">
-                <label>ملاحظات (اختياري عند الإنهاء)</label>
-                <textarea class="form-control" rows="2" @bind="notes"></textarea>
-            </div>
+                <MudTextField @bind-Value="notes" Label="ملاحظات (اختياري عند الإنهاء)" Variant="Variant.Outlined" Lines="2" Class="mt-4" />
+            </MudPaper>
         }
         else
         {
-            <button class="btn btn-primary" style="margin-top:20px;" @onclick="CallNextAsync" disabled="@isBusy">
-                استدعاء التالي
-            </button>
+            <div class="text-center mt-6">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="hq-action-btn px-8"
+                           StartIcon="@Icons.Material.Filled.NotificationsActive" OnClick="CallNextAsync" Disabled="isBusy">
+                    استدعاء التالي
+                </MudButton>
+            </div>
         }
 
-        <div style="margin-top:24px;">
-            <button class="btn btn-secondary" @onclick="EndSessionAsync">إنهاء الجلسة</button>
+        <div class="text-center mt-6">
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="EndSessionAsync">إنهاء الجلسة</MudButton>
         </div>
-    </div>
-}
+    }
+</div>
 
 @code {
     private Guid employeeId;
@@ -127,7 +126,6 @@ else
     private bool showTransfer;
     private string transferServiceId = string.Empty;
     private string? notes;
-    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -150,7 +148,7 @@ else
         }
     }
 
-    private void OnSelectedCounterChanged()
+    private void OnSelectedCounterChangedAsync()
     {
         availableServices = counters.FirstOrDefault(c => c.Id.ToString() == selectedCounterId)
             ?.CounterServices.Select(cs => cs.Service).Where(s => s.IsActive).ToList() ?? new();
@@ -159,22 +157,21 @@ else
 
     private async Task StartSessionAsync()
     {
-        errorMessage = null;
         if (!Guid.TryParse(selectedCounterId, out var counterId) || !Guid.TryParse(selectedServiceId, out var serviceId))
         {
-            errorMessage = "الرجاء اختيار الشباك والخدمة";
+            Snackbar.Add("الرجاء اختيار الشباك والخدمة", Severity.Warning);
             return;
         }
 
         try
         {
-            var session = await QueueService.StartSessionAsync(employeeId, counterId, serviceId);
+            await QueueService.StartSessionAsync(employeeId, counterId, serviceId);
             activeSession = await QueueService.GetActiveSessionAsync(employeeId);
             waitingCount = await QueueService.GetWaitingCountAsync(serviceId);
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -186,13 +183,12 @@ else
         }
 
         isBusy = true;
-        errorMessage = null;
         try
         {
             var ticket = await QueueService.CallNextAsync(activeSession.Id);
             if (ticket is null)
             {
-                errorMessage = "لا يوجد مرضى بانتظار هذه الخدمة حالياً";
+                Snackbar.Add("لا يوجد مرضى بانتظار هذه الخدمة حالياً", Severity.Info);
             }
             else
             {
@@ -203,7 +199,7 @@ else
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
         finally
         {
@@ -220,7 +216,7 @@ else
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -233,7 +229,7 @@ else
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -249,7 +245,7 @@ else
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -264,7 +260,7 @@ else
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -274,7 +270,7 @@ else
     {
         if (currentTicket is null || !Guid.TryParse(transferServiceId, out var targetServiceId))
         {
-            errorMessage = "الرجاء اختيار الخدمة المطلوب التحويل إليها";
+            Snackbar.Add("الرجاء اختيار الخدمة المطلوب التحويل إليها", Severity.Warning);
             return;
         }
 
@@ -287,7 +283,7 @@ else
         }
         catch (QueueOperationException ex)
         {
-            errorMessage = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
@@ -315,6 +311,13 @@ else
         TicketStatus.Called => "تم النداء",
         TicketStatus.InService => "قيد الخدمة",
         _ => status.ToString(),
+    };
+
+    private static string StatusChipClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Called => "hq-chip-called",
+        TicketStatus.InService => "hq-chip-inservice",
+        _ => "hq-chip-waiting",
     };
 
     public void Dispose()

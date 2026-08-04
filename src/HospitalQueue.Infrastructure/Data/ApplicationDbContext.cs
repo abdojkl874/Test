@@ -17,6 +17,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketStatusHistory> TicketStatusHistories => Set<TicketStatusHistory>();
     public DbSet<DailySequence> DailySequences => Set<DailySequence>();
+    public DbSet<OrganizationSettings> OrganizationSettings => Set<OrganizationSettings>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -87,6 +88,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             b.Property(h => h.Status).HasConversion<string>().HasMaxLength(20);
             b.HasOne(h => h.Ticket).WithMany(t => t.History).HasForeignKey(h => h.TicketId).OnDelete(DeleteBehavior.Cascade);
             b.HasIndex(h => h.TicketId);
+        });
+
+        builder.Entity<OrganizationSettings>(b =>
+        {
+            b.Property(s => s.OrgNameAr).HasMaxLength(200).IsRequired();
+            b.Property(s => s.TickerText).HasMaxLength(500);
         });
     }
 }

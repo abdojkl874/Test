@@ -1,54 +1,49 @@
 @page "/admin/roles"
 @attribute [Authorize(Roles = AppRoles.Admin)]
+@layout AdminLayout
 @using System.Security.Claims
 @using HospitalQueue.Domain.Entities
 @using Microsoft.AspNetCore.Identity
 @inject RoleManager<ApplicationRole> RoleManager
+@inject ISnackbar Snackbar
 
 <PageTitle>الأدوار والصلاحيات</PageTitle>
 
-<h1>الأدوار والصلاحيات</h1>
+<MudText Typo="Typo.h4" Class="hq-page-title">الأدوار والصلاحيات</MudText>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-error">@errorMessage</div>
-}
-
-<div class="card">
-    <h3>إضافة دور جديد</h3>
-    <div class="grid grid-3">
-        <div class="form-group">
-            <label>اسم الدور</label>
-            <input class="form-control" @bind="newRoleName" />
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;">
-            <button class="btn btn-primary" @onclick="AddRoleAsync">إضافة</button>
-        </div>
-    </div>
-</div>
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudText Typo="Typo.subtitle1" Class="mb-3">إضافة دور جديد</MudText>
+    <MudGrid AlignItems="Center">
+        <MudItem xs="12" sm="6">
+            <MudTextField @bind-Value="newRoleName" Label="اسم الدور" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddRoleAsync" StartIcon="@Icons.Material.Filled.Add">إضافة</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
 @foreach (var row in roleRows)
 {
-    <div class="card" @key="row.Role.Id">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <h3>@row.Role.Name</h3>
+    <MudPaper Class="pa-4 mb-3" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);" @key="row.Role.Id">
+        <div class="d-flex align-center justify-space-between mb-2">
+            <MudText Typo="Typo.h6">@row.Role.Name</MudText>
             @if (!AppRoles.All.Contains(row.Role.Name))
             {
-                <button class="btn btn-danger" @onclick="() => DeleteRoleAsync(row)">حذف الدور</button>
+                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error" OnClick="() => DeleteRoleAsync(row)">حذف الدور</MudButton>
             }
         </div>
 
-        <div class="grid grid-3">
+        <MudGrid>
             @foreach (var permission in AppPermissions.All)
             {
                 var granted = row.Permissions.Contains(permission);
-                <label style="font-weight:normal;">
-                    <input type="checkbox" checked="@granted" @onchange="e => TogglePermissionAsync(row, permission, (bool)e.Value!)" />
-                    @PermissionLabel(permission)
-                </label>
+                <MudItem xs="12" sm="4">
+                    <MudCheckBox T="bool" Value="granted" ValueChanged="@(v => TogglePermissionAsync(row, permission, v))" Label="@PermissionLabel(permission)" Color="Color.Primary" />
+                </MudItem>
             }
-        </div>
-    </div>
+        </MudGrid>
+    </MudPaper>
 }
 
 @code {
@@ -60,7 +55,6 @@
 
     private List<RoleRow> roleRows = new();
     private string newRoleName = string.Empty;
-    private string? errorMessage;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -80,22 +74,22 @@
 
     private async Task AddRoleAsync()
     {
-        errorMessage = null;
         if (string.IsNullOrWhiteSpace(newRoleName))
         {
-            errorMessage = "الرجاء إدخال اسم الدور";
+            Snackbar.Add("الرجاء إدخال اسم الدور", Severity.Warning);
             return;
         }
 
         if (await RoleManager.RoleExistsAsync(newRoleName))
         {
-            errorMessage = "يوجد دور بنفس الاسم";
+            Snackbar.Add("يوجد دور بنفس الاسم", Severity.Warning);
             return;
         }
 
         await RoleManager.CreateAsync(new ApplicationRole(newRoleName.Trim()));
         newRoleName = string.Empty;
         await LoadAsync();
+        Snackbar.Add("تمت إضافة الدور", Severity.Success);
     }
 
     private async Task DeleteRoleAsync(RoleRow row)

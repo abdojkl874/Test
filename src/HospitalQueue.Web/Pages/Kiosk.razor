@@ -1,5 +1,6 @@
 @page "/kiosk"
 @attribute [Authorize(Roles = AppRoles.Kiosk + "," + AppRoles.Admin)]
+@layout BareLayout
 @using HospitalQueue.Domain.Entities
 @using HospitalQueue.Infrastructure.Data
 @using Microsoft.EntityFrameworkCore
@@ -10,40 +11,46 @@
 
 <PageTitle>شاشة الكشك</PageTitle>
 
-@if (issuedTicket is null)
-{
-    <h1 style="text-align:center;">الرجاء اختيار الخدمة المطلوبة</h1>
+<div class="hq-kiosk-shell">
+    <MudIconButton Icon="@Icons.Material.Filled.Fullscreen" Color="Color.Inherit"
+                   Style="position:absolute; top:1rem; inset-inline-start:1rem;"
+                   OnClick="EnterFullscreenAsync" title="ملء الشاشة" />
 
-    @if (!string.IsNullOrEmpty(errorMessage))
+    @if (issuedTicket is null)
     {
-        <div class="alert alert-error">@errorMessage</div>
+        <div class="hq-kiosk-title">الرجاء اختيار الخدمة المطلوبة</div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <MudAlert Severity="Severity.Error" Class="mb-4" Style="max-width:600px;">@errorMessage</MudAlert>
+        }
+
+        <div class="hq-kiosk-grid">
+            @foreach (var service in services)
+            {
+                <button class="hq-kiosk-tile" @onclick="() => IssueTicketAsync(service.Id)" disabled="@isBusy">
+                    @service.NameAr
+                </button>
+            }
+        </div>
     }
+    else
+    {
+        <div class="hq-kiosk-ticket-card">
+            <MudText Typo="Typo.subtitle1" Color="Color.Default">رقم تذكرتك</MudText>
+            <div class="hq-kiosk-ticket-number">@issuedTicket.Number</div>
+            <MudText Typo="Typo.h6">@issuedTicket.ServiceName</MudText>
+            <MudText Typo="Typo.body2" Class="mt-2" Color="Color.Secondary">يرجى الانتظار حتى يتم مناداة رقمك على شاشة العرض</MudText>
 
-    <div class="kiosk-grid">
-        @foreach (var service in services)
-        {
-            <button class="kiosk-service-btn" @onclick="() => IssueTicketAsync(service.Id)" disabled="@isBusy">
-                @service.NameAr
-            </button>
-        }
-    </div>
-}
-else
-{
-    <div class="kiosk-ticket card">
-        <div>رقم تذكرتك</div>
-        <div class="number">@issuedTicket.Number</div>
-        <div>@issuedTicket.ServiceName</div>
-        <p>يرجى الانتظار حتى يتم مناداة رقمك على شاشة العرض</p>
+            @if (!printSucceeded)
+            {
+                <MudAlert Severity="Severity.Warning" Class="mt-3">تعذر إرسال التذكرة للطباعة، يرجى تدوين الرقم يدوياً</MudAlert>
+            }
 
-        @if (!printSucceeded)
-        {
-            <div class="alert alert-error">تعذر الاتصال بالطابعة، يرجى تدوين الرقم يدوياً</div>
-        }
-
-        <button class="btn btn-primary" @onclick="Reset">تذكرة جديدة</button>
-    </div>
-}
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="Reset">تذكرة جديدة</MudButton>
+        </div>
+    }
+</div>
 
 @code {
     private List<Service> services = new();
@@ -51,12 +58,20 @@ else
     private string? errorMessage;
     private bool isBusy;
     private bool printSucceeded = true;
+    private string orgName = "نظام إدارة طابور المشفى";
     private System.Timers.Timer? resetTimer;
 
     protected override async Task OnInitializedAsync()
     {
         services = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
+        var settings = await Db.OrganizationSettings.FirstOrDefaultAsync();
+        if (settings is not null)
+        {
+            orgName = settings.OrgNameAr;
+        }
     }
+
+    private Task EnterFullscreenAsync() => JS.InvokeVoidAsync("hospitalQueueKiosk.enter").AsTask();
 
     private async Task IssueTicketAsync(Guid serviceId)
     {
@@ -74,7 +89,8 @@ else
                 "hospitalQueuePrint.printTicket",
                 issuedTicket.Number,
                 issuedTicket.ServiceName,
-                DateTime.Now.ToString("yyyy-MM-dd HH:mm"));
+                orgName,
+                DateTime.Now.ToString("o"));
 
             resetTimer?.Dispose();
             resetTimer = new System.Timers.Timer(10000) { AutoReset = false };

@@ -6,6 +6,7 @@ using HospitalQueue.Infrastructure.Data;
 using HospitalQueue.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddMudServices();
 
 // QueueEventBus is the singleton pub/sub every circuit subscribes to for live
 // updates (see its doc comment) — Blazor Server's own connection already

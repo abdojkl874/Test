@@ -1,97 +1,154 @@
 @page "/admin"
 @attribute [Authorize(Roles = AppRoles.Admin)]
+@layout AdminLayout
 @inject IReportService ReportService
 
 <PageTitle>لوحة التحكم</PageTitle>
 
-<h1>لوحة التحكم</h1>
+<MudText Typo="Typo.h4" Class="hq-page-title">لوحة التحكم</MudText>
 
-<div class="card">
-    <div class="grid grid-3">
-        <div class="form-group">
-            <label>من تاريخ</label>
-            <input type="date" class="form-control" @bind="fromDate" />
-        </div>
-        <div class="form-group">
-            <label>إلى تاريخ</label>
-            <input type="date" class="form-control" @bind="toDate" />
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;">
-            <button class="btn btn-primary" @onclick="LoadAsync">تحديث</button>
-        </div>
-    </div>
-</div>
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudGrid AlignItems="Center">
+        <MudItem xs="12" sm="4">
+            <MudDatePicker Label="من تاريخ" @bind-Date="fromDate" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudDatePicker Label="إلى تاريخ" @bind-Date="toDate" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LoadAsync" StartIcon="@Icons.Material.Filled.Refresh">تحديث</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
 @if (summary is not null)
 {
-    <div class="grid grid-3">
-        <div class="stat-tile"><div class="value">@summary.WaitingNow</div><div class="label">بالانتظار الآن</div></div>
-        <div class="stat-tile"><div class="value">@summary.InServiceNow</div><div class="label">قيد الخدمة الآن</div></div>
-        <div class="stat-tile"><div class="value">@summary.ServiceStats.Sum(s => s.TicketCount)</div><div class="label">إجمالي التذاكر بالفترة</div></div>
-    </div>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="hq-stat-tile" Elevation="0">
+                <MudIcon Icon="@Icons.Material.Filled.HourglassTop" Class="hq-stat-icon" />
+                <div class="hq-stat-value">@summary.WaitingNow</div>
+                <div class="hq-stat-label">بالانتظار الآن</div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="hq-stat-tile hq-accent" Elevation="0">
+                <MudIcon Icon="@Icons.Material.Filled.MedicalServices" Class="hq-stat-icon" />
+                <div class="hq-stat-value">@summary.InServiceNow</div>
+                <div class="hq-stat-label">قيد الخدمة الآن</div>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="4">
+            <MudPaper Class="hq-stat-tile" Elevation="0">
+                <MudIcon Icon="@Icons.Material.Filled.ConfirmationNumber" Class="hq-stat-icon" />
+                <div class="hq-stat-value">@summary.ServiceStats.Sum(s => s.TicketCount)</div>
+                <div class="hq-stat-label">إجمالي التذاكر بالفترة</div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
-    <div class="grid grid-2">
-        <div class="card">
-            <h3>عدد التذاكر لكل خدمة / عيادة</h3>
-            <BarChart Items="@summary.ServiceStats.Select(s => (s.ServiceName, (double)s.TicketCount)).ToList()" />
-        </div>
-        <div class="card">
-            <h3>متوسط زمن الانتظار (دقيقة)</h3>
-            <BarChart Items="@summary.ServiceStats.Select(s => (s.ServiceName, s.AverageWaitMinutes)).ToList()" ValueFormat="0.0" />
-        </div>
-        <div class="card">
-            <h3>متوسط زمن الخدمة (دقيقة)</h3>
-            <BarChart Items="@summary.ServiceStats.Select(s => (s.ServiceName, s.AverageServiceMinutes)).ToList()" ValueFormat="0.0" />
-        </div>
-        <div class="card">
-            <h3>عدد التذاكر لكل موظف</h3>
-            <BarChart Items="@summary.EmployeeStats.Select(s => (s.EmployeeName, (double)s.TicketsHandled)).ToList()" />
-        </div>
-        <div class="card">
-            <h3>عدد التذاكر لكل شباك</h3>
-            <BarChart Items="@summary.CounterStats.Select(s => (s.CounterName, (double)s.TicketsHandled)).ToList()" />
-        </div>
-    </div>
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">عدد التذاكر لكل خدمة/عيادة</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@ticketCountSeries" XAxisLabels="@serviceLabels" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">متوسط زمن الانتظار (دقيقة)</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@waitTimeSeries" XAxisLabels="@serviceLabels" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">متوسط زمن الخدمة (دقيقة)</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@serviceTimeSeries" XAxisLabels="@serviceLabels" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">عدد التذاكر لكل موظف</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@employeeSeries" XAxisLabels="@employeeLabels" Height="280px" />
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" md="6">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <MudText Typo="Typo.subtitle1" Class="mb-2">عدد التذاكر لكل شباك</MudText>
+                <MudChart ChartType="ChartType.Bar" ChartSeries="@counterSeries" XAxisLabels="@counterLabels" Height="280px" />
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
 
-    <div class="card">
-        <h3>تفاصيل الخدمات</h3>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>الخدمة</th>
-                    <th>العدد</th>
-                    <th>مكتملة</th>
-                    <th>متخطاة</th>
-                    <th>متوسط الانتظار (د)</th>
-                    <th>متوسط الخدمة (د)</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var s in summary.ServiceStats)
-                {
-                    <tr>
-                        <td>@s.ServiceName</td>
-                        <td>@s.TicketCount</td>
-                        <td>@s.CompletedCount</td>
-                        <td>@s.SkippedCount</td>
-                        <td>@s.AverageWaitMinutes</td>
-                        <td>@s.AverageServiceMinutes</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">تفاصيل الخدمات</MudText>
+        <MudTable Items="summary.ServiceStats" Dense="true" Hover="true">
+            <HeaderContent>
+                <MudTh>الخدمة</MudTh>
+                <MudTh>العدد</MudTh>
+                <MudTh>مكتملة</MudTh>
+                <MudTh>متخطاة</MudTh>
+                <MudTh>متوسط الانتظار (د)</MudTh>
+                <MudTh>متوسط الخدمة (د)</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="الخدمة">@context.ServiceName</MudTd>
+                <MudTd DataLabel="العدد">@context.TicketCount</MudTd>
+                <MudTd DataLabel="مكتملة">@context.CompletedCount</MudTd>
+                <MudTd DataLabel="متخطاة">@context.SkippedCount</MudTd>
+                <MudTd DataLabel="متوسط الانتظار">@context.AverageWaitMinutes</MudTd>
+                <MudTd DataLabel="متوسط الخدمة">@context.AverageServiceMinutes</MudTd>
+            </RowTemplate>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
-    private DateTime fromDate = DateTime.Today;
-    private DateTime toDate = DateTime.Today;
+    private DateTime? fromDate = DateTime.Today;
+    private DateTime? toDate = DateTime.Today;
     private DashboardSummaryDto? summary;
+
+    private string[] serviceLabels = Array.Empty<string>();
+    private string[] employeeLabels = Array.Empty<string>();
+    private string[] counterLabels = Array.Empty<string>();
+    private List<ChartSeries> ticketCountSeries = new();
+    private List<ChartSeries> waitTimeSeries = new();
+    private List<ChartSeries> serviceTimeSeries = new();
+    private List<ChartSeries> employeeSeries = new();
+    private List<ChartSeries> counterSeries = new();
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
     private async Task LoadAsync()
     {
-        summary = await ReportService.GetDashboardAsync(DateOnly.FromDateTime(fromDate), DateOnly.FromDateTime(toDate));
+        var from = DateOnly.FromDateTime(fromDate ?? DateTime.Today);
+        var to = DateOnly.FromDateTime(toDate ?? DateTime.Today);
+        summary = await ReportService.GetDashboardAsync(from, to);
+
+        serviceLabels = summary.ServiceStats.Select(s => s.ServiceName).ToArray();
+        ticketCountSeries = new List<ChartSeries>
+        {
+            new() { Name = "عدد التذاكر", Data = summary.ServiceStats.Select(s => (double)s.TicketCount).ToArray() },
+        };
+        waitTimeSeries = new List<ChartSeries>
+        {
+            new() { Name = "دقائق الانتظار", Data = summary.ServiceStats.Select(s => s.AverageWaitMinutes).ToArray() },
+        };
+        serviceTimeSeries = new List<ChartSeries>
+        {
+            new() { Name = "دقائق الخدمة", Data = summary.ServiceStats.Select(s => s.AverageServiceMinutes).ToArray() },
+        };
+
+        employeeLabels = summary.EmployeeStats.Select(e => e.EmployeeName).ToArray();
+        employeeSeries = new List<ChartSeries>
+        {
+            new() { Name = "عدد التذاكر", Data = summary.EmployeeStats.Select(e => (double)e.TicketsHandled).ToArray() },
+        };
+
+        counterLabels = summary.CounterStats.Select(c => c.CounterName).ToArray();
+        counterSeries = new List<ChartSeries>
+        {
+            new() { Name = "عدد التذاكر", Data = summary.CounterStats.Select(c => (double)c.TicketsHandled).ToArray() },
+        };
     }
 }

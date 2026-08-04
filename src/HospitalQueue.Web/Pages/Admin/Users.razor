@@ -1,100 +1,77 @@
 @page "/admin/users"
 @attribute [Authorize(Roles = AppRoles.Admin)]
+@layout AdminLayout
 @using HospitalQueue.Domain.Entities
 @using Microsoft.AspNetCore.Identity
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<ApplicationRole> RoleManager
+@inject ISnackbar Snackbar
 
 <PageTitle>المستخدمون</PageTitle>
 
-<h1>المستخدمون</h1>
+<MudText Typo="Typo.h4" Class="hq-page-title">المستخدمون</MudText>
 
-@if (!string.IsNullOrEmpty(errorMessage))
-{
-    <div class="alert alert-error">@errorMessage</div>
-}
-@if (!string.IsNullOrEmpty(successMessage))
-{
-    <div class="alert alert-success">@successMessage</div>
-}
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudText Typo="Typo.subtitle1" Class="mb-3">إضافة مستخدم جديد</MudText>
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="newUsername" Label="اسم المستخدم" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="newFullName" Label="الاسم الكامل" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="newEmployeeCode" Label="رقم الموظف (اختياري)" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="newPassword" Label="كلمة المرور المبدئية" InputType="InputType.Password" Variant="Variant.Outlined" />
+        </MudItem>
+        <MudItem xs="12">
+            <MudText Typo="Typo.body2" Class="mb-2">الدور / نوع الشاشة</MudText>
+            @foreach (var role in AppRoles.All)
+            {
+                <MudCheckBox T="bool" Value="@newRoles.Contains(role)" ValueChanged="@(v => ToggleNewRole(role, v))" Label="@role" Color="Color.Primary" Class="d-inline-flex me-4" />
+            }
+        </MudItem>
+        <MudItem xs="12">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" StartIcon="@Icons.Material.Filled.PersonAdd">إنشاء المستخدم</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
 
-<div class="card">
-    <h3>إضافة مستخدم جديد</h3>
-    <div class="grid grid-3">
-        <div class="form-group">
-            <label>اسم المستخدم</label>
-            <input class="form-control" @bind="newUsername" />
-        </div>
-        <div class="form-group">
-            <label>الاسم الكامل</label>
-            <input class="form-control" @bind="newFullName" />
-        </div>
-        <div class="form-group">
-            <label>رقم الموظف (اختياري)</label>
-            <input class="form-control" @bind="newEmployeeCode" />
-        </div>
-        <div class="form-group">
-            <label>كلمة المرور المبدئية</label>
-            <input class="form-control" type="password" @bind="newPassword" />
-        </div>
-        <div class="form-group">
-            <label>الدور / نوع الشاشة</label>
-            <div>
+<MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudTable Items="userRows" Dense="true" Hover="true">
+        <HeaderContent>
+            <MudTh>اسم المستخدم</MudTh>
+            <MudTh>الاسم الكامل</MudTh>
+            <MudTh>الأدوار</MudTh>
+            <MudTh>الحالة</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="اسم المستخدم">@context.User.UserName</MudTd>
+            <MudTd DataLabel="الاسم الكامل">@context.User.FullName</MudTd>
+            <MudTd DataLabel="الأدوار">
                 @foreach (var role in AppRoles.All)
                 {
-                    <label style="font-weight:normal;margin-inline-end:12px;">
-                        <input type="checkbox" checked="@newRoles.Contains(role)" @onchange="e => ToggleNewRole(role, (bool)e.Value!)" />
-                        @role
-                    </label>
+                    <MudCheckBox T="bool" Value="@context.Roles.Contains(role)" ValueChanged="@(v => ToggleUserRoleAsync(context, role, v))" Label="@role" Dense="true" Class="d-inline-flex me-3" />
                 }
-            </div>
-        </div>
-        <div class="form-group" style="display:flex;align-items:flex-end;">
-            <button class="btn btn-primary" @onclick="CreateAsync">إنشاء المستخدم</button>
-        </div>
-    </div>
-</div>
-
-<div class="card">
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>اسم المستخدم</th>
-                <th>الاسم الكامل</th>
-                <th>الأدوار</th>
-                <th>الحالة</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var row in userRows)
-            {
-                <tr @key="row.User.Id">
-                    <td>@row.User.UserName</td>
-                    <td>@row.User.FullName</td>
-                    <td>
-                        @foreach (var role in AppRoles.All)
-                        {
-                            <label style="font-weight:normal;margin-inline-end:10px;">
-                                <input type="checkbox" checked="@row.Roles.Contains(role)"
-                                       @onchange="e => ToggleUserRoleAsync(row, role, (bool)e.Value!)" />
-                                @role
-                            </label>
-                        }
-                    </td>
-                    <td>@(row.User.IsActive ? "مفعّل" : "معطّل")</td>
-                    <td style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <button class="btn @(row.User.IsActive ? "btn-danger" : "btn-primary")" @onclick="() => ToggleActiveAsync(row)">
-                            @(row.User.IsActive ? "تعطيل" : "تفعيل")
-                        </button>
-                        <input class="form-control" style="width:160px;" placeholder="كلمة مرور جديدة" @bind="row.NewPassword" />
-                        <button class="btn btn-secondary" @onclick="() => ResetPasswordAsync(row)">تصفير كلمة المرور</button>
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
-</div>
+            </MudTd>
+            <MudTd DataLabel="الحالة">
+                <MudChip T="string" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.User.IsActive ? "مفعّل" : "معطّل")</MudChip>
+            </MudTd>
+            <MudTd>
+                <div class="d-flex align-center flex-wrap" style="gap:8px;">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="@(context.User.IsActive ? Color.Error : Color.Success)" OnClick="() => ToggleActiveAsync(context)">
+                        @(context.User.IsActive ? "تعطيل" : "تفعيل")
+                    </MudButton>
+                    <MudTextField T="string" @bind-Value="context.NewPassword" Placeholder="كلمة مرور جديدة" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:170px;" />
+                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="() => ResetPasswordAsync(context)">تصفير كلمة المرور</MudButton>
+                </div>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
 
 @code {
     private class UserRow
@@ -110,8 +87,6 @@
     private string newEmployeeCode = string.Empty;
     private string newPassword = string.Empty;
     private HashSet<string> newRoles = new();
-    private string? errorMessage;
-    private string? successMessage;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -133,12 +108,9 @@
 
     private async Task CreateAsync()
     {
-        errorMessage = null;
-        successMessage = null;
-
         if (string.IsNullOrWhiteSpace(newUsername) || string.IsNullOrWhiteSpace(newFullName) || string.IsNullOrWhiteSpace(newPassword))
         {
-            errorMessage = "الرجاء تعبئة اسم المستخدم والاسم الكامل وكلمة المرور";
+            Snackbar.Add("الرجاء تعبئة اسم المستخدم والاسم الكامل وكلمة المرور", Severity.Warning);
             return;
         }
 
@@ -154,7 +126,7 @@
         var result = await UserManager.CreateAsync(user, newPassword);
         if (!result.Succeeded)
         {
-            errorMessage = string.Join("، ", result.Errors.Select(e => e.Description));
+            Snackbar.Add(string.Join("، ", result.Errors.Select(e => e.Description)), Severity.Error);
             return;
         }
 
@@ -163,7 +135,7 @@
             await UserManager.AddToRolesAsync(user, newRoles);
         }
 
-        successMessage = "تم إنشاء المستخدم بنجاح";
+        Snackbar.Add("تم إنشاء المستخدم بنجاح", Severity.Success);
         newUsername = string.Empty;
         newFullName = string.Empty;
         newEmployeeCode = string.Empty;
@@ -194,12 +166,9 @@
 
     private async Task ResetPasswordAsync(UserRow row)
     {
-        errorMessage = null;
-        successMessage = null;
-
         if (string.IsNullOrWhiteSpace(row.NewPassword))
         {
-            errorMessage = "الرجاء إدخال كلمة مرور جديدة";
+            Snackbar.Add("الرجاء إدخال كلمة مرور جديدة", Severity.Warning);
             return;
         }
 
@@ -207,11 +176,11 @@
         var result = await UserManager.ResetPasswordAsync(row.User, token, row.NewPassword);
         if (!result.Succeeded)
         {
-            errorMessage = string.Join("، ", result.Errors.Select(e => e.Description));
+            Snackbar.Add(string.Join("، ", result.Errors.Select(e => e.Description)), Severity.Error);
             return;
         }
 
-        successMessage = $"تم تحديث كلمة مرور {row.User.UserName}";
+        Snackbar.Add($"تم تحديث كلمة مرور {row.User.UserName}", Severity.Success);
         row.NewPassword = null;
     }
 }

@@ -113,5 +113,17 @@ public static class SeedData
 
             await db.SaveChangesAsync();
         }
+
+        if (!await db.OrganizationSettings.AnyAsync())
+        {
+            db.OrganizationSettings.Add(new OrganizationSettings
+            {
+                Id = 1,
+                OrgNameAr = "نظام إدارة طابور المشفى",
+                TickerEnabled = false,
+                TickerText = "مرحباً بكم — يرجى الانتظار حتى يتم مناداة رقمكم",
+            });
+            await db.SaveChangesAsync();
+        }
     }
 }
