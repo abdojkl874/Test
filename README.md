@@ -68,6 +68,11 @@ dotnet ef migrations add InitialCreate -p ../HospitalQueue.Infrastructure -s .
 
 ثم افتح `HospitalQueue.Infrastructure/Data/SeedData.cs` وبدّل `EnsureCreatedAsync()` إلى `MigrateAsync()`.
 
+## تسجيل الدخول
+
+- `/Account/Login`: تسجيل الدخول العادي (اسم مستخدم + كلمة مرور) — يُستخدم لحسابات المدير والموظف.
+- `/Account/PinLogin`: دخول مبسّط بلوحة مفاتيح رقمية لأجهزة الكشك والعرض — العامل على الجهاز يضغط اسم الجهاز من الأزرار ثم يدخل رمزاً قصيراً (4 أرقام فأكثر). داخلياً هذا نفس نظام ASP.NET Identity تماماً، فقط بواجهة أبسط وكلمة مرور رقمية قصيرة. يظهر رابط للانتقال بين الشاشتين في كل صفحة دخول.
+
 ## شرح الشاشات
 
 ### شاشة الكشك (`/kiosk`)

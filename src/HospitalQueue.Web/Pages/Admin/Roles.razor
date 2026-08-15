@@ -23,28 +23,45 @@
     </MudGrid>
 </MudPaper>
 
-@foreach (var row in roleRows)
-{
-    <MudPaper Class="pa-4 mb-3" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);" @key="row.Role.Id">
-        <div class="d-flex align-center justify-space-between mb-2">
-            <MudText Typo="Typo.h6">@row.Role.Name</MudText>
-            @if (!AppRoles.All.Contains(row.Role.Name))
-            {
-                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Error" OnClick="() => DeleteRoleAsync(row)">حذف الدور</MudButton>
-            }
-        </div>
-
-        <MudGrid>
-            @foreach (var permission in AppPermissions.All)
-            {
-                var granted = row.Permissions.Contains(permission);
-                <MudItem xs="12" sm="4">
-                    <MudCheckBox T="bool" Value="granted" ValueChanged="@(v => TogglePermissionAsync(row, permission, v))" Label="@PermissionLabel(permission)" Color="Color.Primary" />
-                </MudItem>
-            }
-        </MudGrid>
-    </MudPaper>
-}
+<MudPaper Class="pa-2" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <div class="hq-perm-matrix-scroll">
+        <table class="hq-perm-matrix">
+            <thead>
+                <tr>
+                    <th class="hq-perm-col-label">الصلاحية</th>
+                    @foreach (var row in roleRows)
+                    {
+                        <th @key="row.Role.Id">
+                            <div class="hq-perm-role-head">
+                                <span>@row.Role.Name</span>
+                                @if (!AppRoles.All.Contains(row.Role.Name))
+                                {
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error"
+                                                   OnClick="() => DeleteRoleAsync(row)" title="حذف الدور" />
+                                }
+                            </div>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var permission in AppPermissions.All)
+                {
+                    <tr>
+                        <td class="hq-perm-col-label">@PermissionLabel(permission)</td>
+                        @foreach (var row in roleRows)
+                        {
+                            <td @key="row.Role.Id" class="hq-perm-cell">
+                                <MudCheckBox T="bool" Value="row.Permissions.Contains(permission)"
+                                             ValueChanged="@(v => TogglePermissionAsync(row, permission, v))" Color="Color.Primary" Dense="true" />
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</MudPaper>
 
 @code {
     private class RoleRow
