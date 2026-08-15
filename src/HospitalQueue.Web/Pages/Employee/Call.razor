@@ -125,6 +125,13 @@
         <MudTextField @bind-Value="notes" Label="ملاحظات (اختياري عند الإنهاء)" Variant="Variant.Outlined"
                       Margin="Margin.Dense" Lines="2" Class="hq-notes-field" Disabled="currentTicket is null" />
     </MudPaper>
+
+    @if (activeSession is not null)
+    {
+        <div class="text-center">
+            <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="EndSessionAsync">إنهاء الجلسة</MudButton>
+        </div>
+    }
 </div>
 
 @code {
@@ -401,6 +408,19 @@
         {
             Snackbar.Add(ex.Message, Severity.Error);
         }
+    }
+
+    private async Task EndSessionAsync()
+    {
+        if (activeSession is null) return;
+        await QueueService.EndSessionAsync(activeSession.Id);
+        activeSession = null;
+        currentTicket = null;
+        selectedCounterId = string.Empty;
+        selectedServiceId = string.Empty;
+        availableServices.Clear();
+        waitingCount = 0;
+        StopServiceTimer();
     }
 
     private async Task OnQueueChangedAsync(Guid serviceId)
