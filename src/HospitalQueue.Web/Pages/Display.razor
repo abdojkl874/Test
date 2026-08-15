@@ -11,7 +11,7 @@
 
 <PageTitle>شاشة العرض</PageTitle>
 
-<ScreenPasswordGate Title="شاشة العرض" Screen="ScreenLock.Display">
+<ScreenPasswordGate Title="شاشة العرض" PasswordHash="@displayPasswordHash">
     <div class="hq-display-shell">
         <div class="hq-display-header">
             <div class="hq-display-brand">
@@ -74,6 +74,7 @@
     private string orgName = "نظام إدارة طابور المشفى";
     private bool tickerEnabled;
     private string? tickerText;
+    private string? displayPasswordHash;
     private DateTime clock = DateTime.Now;
     private readonly System.Globalization.CultureInfo arabicCulture = new("ar-SA");
     private System.Threading.Timer? clockTimer;
@@ -88,6 +89,7 @@
             orgName = settings.OrgNameAr;
             tickerEnabled = settings.TickerEnabled;
             tickerText = settings.TickerText;
+            displayPasswordHash = settings.DisplayPasswordHash;
         }
 
         var recentEvents = await QueueService.GetRecentlyCalledAsync(15);

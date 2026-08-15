@@ -10,7 +10,7 @@
 
 <PageTitle>شاشة الكشك</PageTitle>
 
-<ScreenPasswordGate Title="شاشة الكشك" Screen="ScreenLock.Kiosk">
+<ScreenPasswordGate Title="شاشة الكشك" PasswordHash="@kioskPasswordHash">
     <div class="hq-kiosk-shell">
         <MudIconButton Icon="@Icons.Material.Filled.Fullscreen" Color="Color.Inherit"
                        Style="position:absolute; top:1rem; inset-inline-start:1rem;"
@@ -61,6 +61,7 @@
     private bool printSucceeded = true;
     private string orgName = "نظام إدارة طابور المشفى";
     private string? activeTemplateElementsJson;
+    private string? kioskPasswordHash;
     private System.Timers.Timer? resetTimer;
 
     protected override async Task OnInitializedAsync()
@@ -70,6 +71,7 @@
         if (settings is not null)
         {
             orgName = settings.OrgNameAr;
+            kioskPasswordHash = settings.KioskPasswordHash;
         }
 
         var activeTemplate = await Db.ReceiptTemplates.FirstOrDefaultAsync(t => t.IsActive);
