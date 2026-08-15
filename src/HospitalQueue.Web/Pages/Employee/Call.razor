@@ -43,8 +43,8 @@
     else
     {
         <div class="hq-window-card mb-4">
-            <MudText Typo="Typo.h6" Color="Color.Inherit">@activeSession.Counter.Name — @activeSession.Service.NameAr</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Inherit" Class="mt-1">@waitingCount مريض بانتظار هذه الخدمة</MudText>
+            <div class="hq-window-card-title">@activeSession.Counter.Name — @activeSession.Service.NameAr</div>
+            <div class="hq-window-card-sub">@waitingCount مريض بانتظار هذه الخدمة</div>
         </div>
 
         @if (currentTicket is not null)
