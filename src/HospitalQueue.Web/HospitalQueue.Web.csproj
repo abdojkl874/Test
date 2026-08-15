@@ -9,6 +9,13 @@
 
   <ItemGroup>
     <PackageReference Include="MudBlazor" Version="7.15.0" />
+    <!-- Required for `dotnet ef` tooling: the EF Core CLI runs through the
+         startup project, so it needs this here too, not just in
+         HospitalQueue.Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
