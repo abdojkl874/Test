@@ -7,6 +7,7 @@
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
 @inject ISnackbar Snackbar
+@inject HospitalQueue.Web.Services.BrandingService Branding
 
 <PageTitle>الإعدادات العامة</PageTitle>
 
@@ -22,6 +23,57 @@
         <MudTextField @bind-Value="settings.TickerText" Label="نص الشريط الإخباري" Variant="Variant.Outlined" Lines="2" Class="mb-4" />
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">حفظ</MudButton>
+    </MudPaper>
+
+    <MudPaper Class="pa-5 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
+        <MudText Typo="Typo.subtitle1" Class="mb-1">الهوية البصرية</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            الشعار يظهر في شاشة الدخول ولوحة التحكم والكشك وشاشة العرض. الألوان تُطبَّق على واجهة النظام بالكامل — اتركها فارغة للعودة للألوان الافتراضية.
+        </MudText>
+
+        <div class="hq-brand-upload mb-4">
+            <div class="hq-brand-preview">
+                @if (!string.IsNullOrEmpty(settings.LogoDataUrl))
+                {
+                    <img src="@settings.LogoDataUrl" alt="الشعار" />
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">لا يوجد شعار</MudText>
+                }
+            </div>
+            <div>
+                <InputFile OnChange="OnLogoSelectedAsync" accept="image/*" />
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-1">PNG أو SVG بخلفية شفافة، الحد الأقصى 2 ميغابايت</MudText>
+                @if (!string.IsNullOrEmpty(settings.LogoDataUrl))
+                {
+                    <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Error" Class="mt-1"
+                               StartIcon="@Icons.Material.Filled.Delete" OnClick="RemoveLogo">حذف الشعار</MudButton>
+                }
+            </div>
+        </div>
+
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="settings.BrandPrimaryColor" Label="اللون الأساسي (مثال: ‎#123B5E)"
+                              Variant="Variant.Outlined" Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Circle"
+                              AdornmentColor="Color.Primary" />
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudTextField @bind-Value="settings.BrandAccentColor" Label="لون التمييز (مثال: ‎#E0793F)"
+                              Variant="Variant.Outlined" Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Circle"
+                              AdornmentColor="Color.Secondary" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBrandingAsync"
+                           StartIcon="@Icons.Material.Filled.Save">حفظ الهوية البصرية</MudButton>
+                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mt-2">
+                    بعد الحفظ، حدّث الصفحة (F5) لرؤية الألوان الجديدة مطبَّقة.
+                </MudText>
+            </MudItem>
+        </MudGrid>
     </MudPaper>
 
     <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
@@ -63,7 +115,70 @@
     private async Task SaveAsync()
     {
         await Db.SaveChangesAsync();
+        Branding.Invalidate();
         Snackbar.Add("تم حفظ الإعدادات", Severity.Success);
+    }
+
+    private async Task OnLogoSelectedAsync(InputFileChangeEventArgs e)
+    {
+        if (settings is null || e.File is null)
+        {
+            return;
+        }
+
+        const long maxSize = 2 * 1024 * 1024;
+        if (e.File.Size > maxSize)
+        {
+            Snackbar.Add("حجم الصورة كبير جداً (الحد الأقصى 2 ميغابايت)", Severity.Warning);
+            return;
+        }
+
+        using var stream = e.File.OpenReadStream(maxSize);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        settings.LogoDataUrl = $"data:{e.File.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+    }
+
+    private void RemoveLogo()
+    {
+        if (settings is not null)
+        {
+            settings.LogoDataUrl = null;
+        }
+    }
+
+    private async Task SaveBrandingAsync()
+    {
+        if (settings is null)
+        {
+            return;
+        }
+
+        settings.BrandPrimaryColor = NormalizeHex(settings.BrandPrimaryColor);
+        settings.BrandAccentColor = NormalizeHex(settings.BrandAccentColor);
+
+        await Db.SaveChangesAsync();
+        Branding.Invalidate();
+        Snackbar.Add("تم حفظ الهوية البصرية", Severity.Success);
+    }
+
+    /// <summary>Accepts "123B5E" as well as "#123B5E"; anything else is dropped rather than stored unusable.</summary>
+    private static string? NormalizeHex(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (!trimmed.StartsWith('#'))
+        {
+            trimmed = "#" + trimmed;
+        }
+
+        return System.Text.RegularExpressions.Regex.IsMatch(trimmed, "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
+            ? trimmed.ToUpperInvariant()
+            : null;
     }
 
     private async Task SaveScreenPasswordsAsync()

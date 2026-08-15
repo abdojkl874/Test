@@ -59,6 +59,7 @@ builder.Services.AddMudServices();
 // provides the "real-time / WebSocket" transport, so no extra SignalR hub is needed.
 builder.Services.AddSingleton<QueueEventBus>();
 builder.Services.AddSingleton<IQueueNotifier>(sp => sp.GetRequiredService<QueueEventBus>());
+builder.Services.AddSingleton<BrandingService>();
 
 builder.Services.AddScoped<IQueueService, QueueService>();
 builder.Services.AddScoped<IReportService, ReportService>();

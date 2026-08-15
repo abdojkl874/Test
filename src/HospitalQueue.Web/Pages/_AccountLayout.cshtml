@@ -1,5 +1,9 @@
 @namespace HospitalQueue.Web.Pages
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@inject HospitalQueue.Web.Services.BrandingService BrandingService
+@{
+    var brandCss = await BrandingService.GetCssVariablesAsync();
+}
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -10,6 +14,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @if (!string.IsNullOrEmpty(brandCss))
+    {
+        <style>@Html.Raw(brandCss)</style>
+    }
 </head>
 <body>
     <div class="hq-login-shell">

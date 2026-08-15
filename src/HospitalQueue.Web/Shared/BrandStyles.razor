@@ -1,0 +1,15 @@
+@using HospitalQueue.Web.Services
+@inject BrandingService Branding
+
+@* Re-points the palette's CSS variables at the organization's colours; the
+   built-in palette in site.css stays the fallback. *@
+@if (!string.IsNullOrEmpty(css))
+{
+    <style>@((MarkupString)css)</style>
+}
+
+@code {
+    private string? css;
+
+    protected override async Task OnInitializedAsync() => css = await Branding.GetCssVariablesAsync();
+}

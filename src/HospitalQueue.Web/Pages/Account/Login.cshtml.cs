@@ -3,6 +3,7 @@ using HospitalQueue.Domain.Constants;
 using HospitalQueue.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using HospitalQueue.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
@@ -13,12 +14,19 @@ public class LoginModel : PageModel
 {
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly BrandingService _branding;
 
-    public LoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+    public LoginModel(
+        SignInManager<ApplicationUser> signInManager,
+        UserManager<ApplicationUser> userManager,
+        BrandingService branding)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _branding = branding;
     }
+
+    public Branding Brand { get; private set; } = HospitalQueue.Web.Services.Branding.Default;
 
     [BindProperty]
     [Required(ErrorMessage = "الرجاء إدخال اسم المستخدم")]
@@ -33,12 +41,12 @@ public class LoginModel : PageModel
 
     public string? ErrorMessage { get; set; }
 
-    public void OnGet()
-    {
-    }
+    public async Task OnGetAsync() => Brand = await _branding.GetAsync();
 
     public async Task<IActionResult> OnPostAsync()
     {
+        Brand = await _branding.GetAsync();
+
         if (!ModelState.IsValid)
         {
             return Page();

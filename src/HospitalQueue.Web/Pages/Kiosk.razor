@@ -16,6 +16,10 @@
                        Style="position:absolute; top:1rem; inset-inline-start:1rem;"
                        OnClick="EnterFullscreenAsync" title="ملء الشاشة" />
 
+        <div class="hq-kiosk-brand">
+            <BrandLogo Height="64px" ShowFallback="false" />
+        </div>
+
         @if (issuedTicket is null)
         {
             <div class="hq-kiosk-title">الرجاء اختيار الخدمة المطلوبة</div>

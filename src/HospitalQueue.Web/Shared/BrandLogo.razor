@@ -1,0 +1,33 @@
+@using HospitalQueue.Web.Services
+@inject BrandingService Branding
+
+@* Falls back to a lettermark when no logo has been uploaded yet, so every
+   screen has something in the brand slot from a fresh install. *@
+@if (!string.IsNullOrEmpty(logoDataUrl))
+{
+    <img src="@logoDataUrl" alt="@orgName" class="hq-brand-logo @Class" style="height:@(Height);" />
+}
+else if (ShowFallback)
+{
+    <span class="hq-brand-mark @Class" style="width:@(Height); height:@(Height);">ش</span>
+}
+
+@code {
+    /// <summary>CSS height for the logo, e.g. "40px".</summary>
+    [Parameter] public string Height { get; set; } = "40px";
+
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>Render the lettermark when no logo is configured.</summary>
+    [Parameter] public bool ShowFallback { get; set; } = true;
+
+    private string? logoDataUrl;
+    private string orgName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var branding = await Branding.GetAsync();
+        logoDataUrl = branding.LogoDataUrl;
+        orgName = branding.OrgName;
+    }
+}

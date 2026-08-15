@@ -2,7 +2,11 @@
 @model HospitalQueue.Web.Pages.Account.LoginModel
 
 <div class="hq-login-card">
-    <div style="color:var(--hq-muted); font-weight:600;">نظام إدارة طابور المشفى</div>
+    @if (!string.IsNullOrEmpty(Model.Brand.LogoDataUrl))
+    {
+        <img src="@Model.Brand.LogoDataUrl" alt="@Model.Brand.OrgName" class="hq-login-logo" />
+    }
+    <div style="color:var(--hq-muted); font-weight:600;">@Model.Brand.OrgName</div>
     <div class="hq-login-title">تسجيل الدخول</div>
     <div class="hq-login-subtitle">أدخل بيانات حسابك للمتابعة</div>
 

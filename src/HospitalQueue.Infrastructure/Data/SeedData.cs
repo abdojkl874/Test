@@ -56,6 +56,9 @@ public static class SeedData
             """
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "KioskPasswordHash" text NULL;
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "DisplayPasswordHash" text NULL;
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "LogoDataUrl" text NULL;
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "BrandPrimaryColor" text NULL;
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "BrandAccentColor" text NULL;
             ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "EmployeeCode";
             """);
 
