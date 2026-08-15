@@ -1,5 +1,4 @@
 @page "/kiosk"
-@attribute [Authorize(Roles = AppRoles.Kiosk + "," + AppRoles.Admin)]
 @layout BareLayout
 @using HospitalQueue.Domain.Entities
 @using HospitalQueue.Infrastructure.Data
@@ -11,46 +10,48 @@
 
 <PageTitle>شاشة الكشك</PageTitle>
 
-<div class="hq-kiosk-shell">
-    <MudIconButton Icon="@Icons.Material.Filled.Fullscreen" Color="Color.Inherit"
-                   Style="position:absolute; top:1rem; inset-inline-start:1rem;"
-                   OnClick="EnterFullscreenAsync" title="ملء الشاشة" />
+<ScreenPasswordGate Title="شاشة الكشك" Screen="ScreenLock.Kiosk">
+    <div class="hq-kiosk-shell">
+        <MudIconButton Icon="@Icons.Material.Filled.Fullscreen" Color="Color.Inherit"
+                       Style="position:absolute; top:1rem; inset-inline-start:1rem;"
+                       OnClick="EnterFullscreenAsync" title="ملء الشاشة" />
 
-    @if (issuedTicket is null)
-    {
-        <div class="hq-kiosk-title">الرجاء اختيار الخدمة المطلوبة</div>
-
-        @if (!string.IsNullOrEmpty(errorMessage))
+        @if (issuedTicket is null)
         {
-            <MudAlert Severity="Severity.Error" Class="mb-4" Style="max-width:600px;">@errorMessage</MudAlert>
+            <div class="hq-kiosk-title">الرجاء اختيار الخدمة المطلوبة</div>
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-4" Style="max-width:600px;">@errorMessage</MudAlert>
+            }
+
+            <div class="hq-kiosk-grid">
+                @foreach (var service in services)
+                {
+                    <button class="hq-kiosk-tile" @onclick="() => IssueTicketAsync(service.Id)" disabled="@isBusy">
+                        @service.NameAr
+                    </button>
+                }
+            </div>
         }
+        else
+        {
+            <div class="hq-kiosk-ticket-card">
+                <MudText Typo="Typo.subtitle1" Color="Color.Default">رقم تذكرتك</MudText>
+                <div class="hq-kiosk-ticket-number">@issuedTicket.Number</div>
+                <MudText Typo="Typo.h6">@issuedTicket.ServiceName</MudText>
+                <MudText Typo="Typo.body2" Class="mt-2" Color="Color.Secondary">يرجى الانتظار حتى يتم مناداة رقمك على شاشة العرض</MudText>
 
-        <div class="hq-kiosk-grid">
-            @foreach (var service in services)
-            {
-                <button class="hq-kiosk-tile" @onclick="() => IssueTicketAsync(service.Id)" disabled="@isBusy">
-                    @service.NameAr
-                </button>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="hq-kiosk-ticket-card">
-            <MudText Typo="Typo.subtitle1" Color="Color.Default">رقم تذكرتك</MudText>
-            <div class="hq-kiosk-ticket-number">@issuedTicket.Number</div>
-            <MudText Typo="Typo.h6">@issuedTicket.ServiceName</MudText>
-            <MudText Typo="Typo.body2" Class="mt-2" Color="Color.Secondary">يرجى الانتظار حتى يتم مناداة رقمك على شاشة العرض</MudText>
+                @if (!printSucceeded)
+                {
+                    <MudAlert Severity="Severity.Warning" Class="mt-3">تعذر إرسال التذكرة للطباعة، يرجى تدوين الرقم يدوياً</MudAlert>
+                }
 
-            @if (!printSucceeded)
-            {
-                <MudAlert Severity="Severity.Warning" Class="mt-3">تعذر إرسال التذكرة للطباعة، يرجى تدوين الرقم يدوياً</MudAlert>
-            }
-
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="Reset">تذكرة جديدة</MudButton>
-        </div>
-    }
-</div>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="Reset">تذكرة جديدة</MudButton>
+            </div>
+        }
+    </div>
+</ScreenPasswordGate>
 
 @code {
     private List<Service> services = new();

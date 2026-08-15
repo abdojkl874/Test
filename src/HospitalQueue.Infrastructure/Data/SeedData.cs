@@ -48,6 +48,16 @@ public static class SeedData
             await db.Database.EnsureCreatedAsync();
         }
 
+        // EnsureCreatedAsync() only builds the schema on a brand new database —
+        // it never alters tables that already exist, so entity properties added
+        // after a database was first created (e.g. the kiosk/display password
+        // columns) need to be patched in by hand. Safe to run on every startup.
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "KioskPasswordHash" text NULL;
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "DisplayPasswordHash" text NULL;
+            """);
+
         foreach (var roleName in AppRoles.All)
         {
             var role = await roleManager.FindByNameAsync(roleName);

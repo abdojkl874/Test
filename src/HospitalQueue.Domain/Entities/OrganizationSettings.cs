@@ -7,4 +7,10 @@ public class OrganizationSettings
     public string OrgNameAr { get; set; } = "نظام إدارة طابور المشفى";
     public bool TickerEnabled { get; set; }
     public string? TickerText { get; set; }
+
+    /// <summary>Hashed shared password gating /kiosk. Null = screen not yet configured, access blocked.</summary>
+    public string? KioskPasswordHash { get; set; }
+
+    /// <summary>Hashed shared password gating /display. Null = screen not yet configured, access blocked.</summary>
+    public string? DisplayPasswordHash { get; set; }
 }

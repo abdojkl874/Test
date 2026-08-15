@@ -3,6 +3,7 @@
 @layout AdminLayout
 @using HospitalQueue.Domain.Entities
 @using HospitalQueue.Infrastructure.Data
+@using Microsoft.AspNetCore.Identity
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
 @inject ISnackbar Snackbar
@@ -13,7 +14,7 @@
 
 @if (settings is not null)
 {
-    <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
+    <MudPaper Class="pa-5 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
         <MudTextField @bind-Value="settings.OrgNameAr" Label="اسم الجهة (يظهر في التذاكر وشاشة العرض)" Variant="Variant.Outlined" Class="mb-4" />
 
         <MudSwitch @bind-Value="settings.TickerEnabled" Color="Color.Primary" Label="تفعيل الشريط الإخباري في شاشة العرض" Class="mb-3" />
@@ -22,19 +23,71 @@
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync">حفظ</MudButton>
     </MudPaper>
+
+    <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
+        <MudText Typo="Typo.subtitle1" Class="mb-1">كلمات سر شاشات الكشك والعرض</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            شاشتا الكشك والعرض تُفتحان بكلمة سر عامة واحدة بدل تسجيل الدخول بحساب مستخدم. اترك الحقل فارغاً للإبقاء على الكلمة الحالية.
+        </MudText>
+
+        <MudTextField @bind-Value="newKioskPassword" Label="كلمة سر شاشة الكشك الجديدة" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-2" />
+        <MudText Typo="Typo.caption" Color="@(hasKioskPassword ? Color.Success : Color.Warning)" Class="mb-4 d-block">
+            @(hasKioskPassword ? "مضبوطة حالياً" : "غير مضبوطة — شاشة الكشك مقفلة حتى تُضبط")
+        </MudText>
+
+        <MudTextField @bind-Value="newDisplayPassword" Label="كلمة سر شاشة العرض الجديدة" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-2" />
+        <MudText Typo="Typo.caption" Color="@(hasDisplayPassword ? Color.Success : Color.Warning)" Class="mb-4 d-block">
+            @(hasDisplayPassword ? "مضبوطة حالياً" : "غير مضبوطة — شاشة العرض مقفلة حتى تُضبط")
+        </MudText>
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveScreenPasswordsAsync">حفظ كلمات السر</MudButton>
+    </MudPaper>
 }
 
 @code {
+    private static readonly PasswordHasher<object> Hasher = new();
+
     private OrganizationSettings? settings;
+    private string newKioskPassword = string.Empty;
+    private string newDisplayPassword = string.Empty;
+    private bool hasKioskPassword;
+    private bool hasDisplayPassword;
 
     protected override async Task OnInitializedAsync()
     {
         settings = await Db.OrganizationSettings.FirstOrDefaultAsync();
+        hasKioskPassword = !string.IsNullOrEmpty(settings?.KioskPasswordHash);
+        hasDisplayPassword = !string.IsNullOrEmpty(settings?.DisplayPasswordHash);
     }
 
     private async Task SaveAsync()
     {
         await Db.SaveChangesAsync();
         Snackbar.Add("تم حفظ الإعدادات", Severity.Success);
+    }
+
+    private async Task SaveScreenPasswordsAsync()
+    {
+        if (settings is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(newKioskPassword))
+        {
+            settings.KioskPasswordHash = Hasher.HashPassword(new object(), newKioskPassword);
+            newKioskPassword = string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(newDisplayPassword))
+        {
+            settings.DisplayPasswordHash = Hasher.HashPassword(new object(), newDisplayPassword);
+            newDisplayPassword = string.Empty;
+        }
+
+        await Db.SaveChangesAsync();
+        hasKioskPassword = !string.IsNullOrEmpty(settings.KioskPasswordHash);
+        hasDisplayPassword = !string.IsNullOrEmpty(settings.DisplayPasswordHash);
+        Snackbar.Add("تم حفظ كلمات السر", Severity.Success);
     }
 }

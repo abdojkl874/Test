@@ -26,12 +26,14 @@
         <MudItem xs="12" sm="6" md="3">
             <MudTextField @bind-Value="newPassword" Label="كلمة المرور المبدئية" InputType="InputType.Password" Variant="Variant.Outlined" />
         </MudItem>
-        <MudItem xs="12">
-            <MudText Typo="Typo.body2" Class="mb-2">الدور / نوع الشاشة</MudText>
-            @foreach (var role in AppRoles.All)
-            {
-                <MudCheckBox T="bool" Value="@newRoles.Contains(role)" ValueChanged="@(v => ToggleNewRole(role, v))" Label="@RoleLabel(role)" Color="Color.Primary" Class="d-inline-flex me-4" />
-            }
+        <MudItem xs="12" sm="6" md="3">
+            <MudSelect T="string" @bind-Value="newRole" Label="الدور / نوع الشاشة" Variant="Variant.Outlined">
+                <MudSelectItem Value="@string.Empty">بدون دور</MudSelectItem>
+                @foreach (var role in AppRoles.All)
+                {
+                    <MudSelectItem Value="@role">@RoleLabel(role)</MudSelectItem>
+                }
+            </MudSelect>
         </MudItem>
         <MudItem xs="12">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="CreateAsync" StartIcon="@Icons.Material.Filled.PersonAdd">إنشاء المستخدم</MudButton>
@@ -45,7 +47,7 @@
             <MudTh>اسم المستخدم</MudTh>
             <MudTh>الاسم الكامل</MudTh>
             <MudTh>رقم الموظف</MudTh>
-            <MudTh>الأدوار</MudTh>
+            <MudTh>الدور</MudTh>
             <MudTh>الحالة</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
@@ -57,13 +59,15 @@
             <MudTd DataLabel="رقم الموظف">
                 <MudTextField T="string" @bind-Value="context.EditEmployeeCode" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-code-field" />
             </MudTd>
-            <MudTd DataLabel="الأدوار">
-                <div class="hq-role-grid">
+            <MudTd DataLabel="الدور">
+                <MudSelect T="string" Value="@(context.Roles.FirstOrDefault() ?? string.Empty)" ValueChanged="@(v => SetUserRoleAsync(context, v))"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-role-select">
+                    <MudSelectItem Value="@string.Empty">بدون دور</MudSelectItem>
                     @foreach (var role in AppRoles.All)
                     {
-                        <MudCheckBox T="bool" Value="@context.Roles.Contains(role)" ValueChanged="@(v => ToggleUserRoleAsync(context, role, v))" Label="@RoleLabel(role)" Dense="true" Class="hq-role-check" />
+                        <MudSelectItem Value="@role">@RoleLabel(role)</MudSelectItem>
                     }
-                </div>
+                </MudSelect>
             </MudTd>
             <MudTd DataLabel="الحالة">
                 <MudChip T="string" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.User.IsActive ? "مفعّل" : "معطّل")</MudChip>
@@ -97,7 +101,7 @@
     private string newFullName = string.Empty;
     private string newEmployeeCode = string.Empty;
     private string newPassword = string.Empty;
-    private HashSet<string> newRoles = new();
+    private string newRole = string.Empty;
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -115,12 +119,6 @@
                 EditEmployeeCode = user.EmployeeCode ?? string.Empty,
             });
         }
-    }
-
-    private void ToggleNewRole(string role, bool assign)
-    {
-        if (assign) newRoles.Add(role);
-        else newRoles.Remove(role);
     }
 
     private async Task CreateAsync()
@@ -147,9 +145,9 @@
             return;
         }
 
-        if (newRoles.Any())
+        if (!string.IsNullOrEmpty(newRole))
         {
-            await UserManager.AddToRolesAsync(user, newRoles);
+            await UserManager.AddToRoleAsync(user, newRole);
         }
 
         Snackbar.Add("تم إنشاء المستخدم بنجاح", Severity.Success);
@@ -157,21 +155,24 @@
         newFullName = string.Empty;
         newEmployeeCode = string.Empty;
         newPassword = string.Empty;
-        newRoles.Clear();
+        newRole = string.Empty;
         await LoadAsync();
     }
 
-    private async Task ToggleUserRoleAsync(UserRow row, string role, bool assign)
+    private async Task SetUserRoleAsync(UserRow row, string role)
     {
-        if (assign)
+        // Every account may hold exactly one role, so switching roles clears
+        // whatever was assigned before adding the new one.
+        if (row.Roles.Count > 0)
+        {
+            await UserManager.RemoveFromRolesAsync(row.User, row.Roles);
+            row.Roles.Clear();
+        }
+
+        if (!string.IsNullOrEmpty(role))
         {
             await UserManager.AddToRoleAsync(row.User, role);
             row.Roles.Add(role);
-        }
-        else
-        {
-            await UserManager.RemoveFromRoleAsync(row.User, role);
-            row.Roles.Remove(role);
         }
     }
 

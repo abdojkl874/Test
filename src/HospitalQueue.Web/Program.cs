@@ -25,11 +25,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql
 builder.Services
     .AddIdentity<ApplicationUser, ApplicationRole>(options =>
     {
-        // Kiosk/Display accounts sign in with a short numeric PIN (see
-        // Pages/Account/PinLogin.cshtml) instead of a typed password, so the
-        // minimum length has to accommodate a 4-digit PIN. Admin/Employee
-        // accounts can still be given longer, stronger passwords — this
-        // just stops enforcing it.
+        // Kept short so short employee/admin passwords aren't rejected outright;
+        // the Kiosk/Display screens don't authenticate through Identity at all
+        // (see Shared/ScreenPasswordGate.razor) so this only governs user accounts.
         options.Password.RequiredLength = 4;
         options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireUppercase = false;

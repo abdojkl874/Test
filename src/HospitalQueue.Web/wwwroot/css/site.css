@@ -134,6 +134,19 @@ html, body {
     font-size: .95rem;
     margin-bottom: 1.4rem;
 }
+.hq-lock-shell {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.hq-lock-card {
+    width: 100%;
+    max-width: 380px;
+    border-radius: var(--hq-radius-lg) !important;
+    border: 1px solid var(--hq-divider);
+}
 .hq-field {
     width: 100%;
     padding: 11px 14px;
@@ -580,19 +593,8 @@ html, body {
 .hq-users-code-field {
     min-width: 110px;
 }
-.hq-role-grid {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    row-gap: 2px;
-    column-gap: 1.1rem;
-    min-width: 220px;
-}
-.hq-role-check {
-    flex: 0 0 auto;
-}
-.hq-role-check .mud-checkbox-label {
-    white-space: nowrap;
+.hq-users-role-select {
+    min-width: 160px;
 }
 .hq-users-actions {
     display: flex;
