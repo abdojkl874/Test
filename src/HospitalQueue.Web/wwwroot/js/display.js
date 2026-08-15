@@ -19,13 +19,56 @@ window.hospitalQueueDisplay = {
         }
     },
 
+    // Browsers populate the voice list asynchronously, so the very first
+    // announcement after a page load often finds getVoices() still empty.
+    // Wait (briefly) for the voiceschanged event rather than speaking with
+    // whatever default voice is active, which is usually a non-Arabic one.
+    _withVoices: function (callback) {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices && voices.length > 0) {
+            callback(voices);
+            return;
+        }
+
+        let done = false;
+        const run = () => {
+            if (done) return;
+            done = true;
+            callback(window.speechSynthesis.getVoices() || []);
+        };
+
+        window.speechSynthesis.addEventListener("voiceschanged", run, { once: true });
+        setTimeout(run, 1000);
+    },
+
     announce: function (ticketNumber, serviceName) {
         try {
             if (!window.speechSynthesis) return;
-            const utterance = new SpeechSynthesisUtterance(
-                `الرجاء من صاحب الرقم ${ticketNumber} التوجه الى عيادة ${serviceName}`);
-            utterance.lang = "ar-SA";
-            window.speechSynthesis.speak(utterance);
+
+            const text = `الرجاء من صاحب الرقم ${ticketNumber} التوجه الى عيادة ${serviceName}`;
+
+            this._withVoices(function (voices) {
+                try {
+                    // A call already being announced is stale the moment a new
+                    // number is called, so drop it instead of queueing behind it.
+                    window.speechSynthesis.cancel();
+
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = "ar-SA";
+                    utterance.rate = 0.9;
+
+                    const arabic = voices.find(v => v.lang && v.lang.toLowerCase().startsWith("ar"));
+                    if (arabic) {
+                        utterance.voice = arabic;
+                    } else {
+                        console.warn("No Arabic voice installed — announcing with the default voice.");
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                } catch (e) {
+                    console.warn("Speech synthesis failed:", e);
+                }
+            });
         } catch (e) {
             console.warn("Speech synthesis failed:", e);
         }

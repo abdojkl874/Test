@@ -351,7 +351,7 @@ html, body {
     background: linear-gradient(135deg, var(--hq-primary), var(--hq-primary-dark));
     color: #fff;
     border-radius: var(--hq-radius-lg);
-    padding: 1.6rem 1.8rem;
+    padding: 1rem 1.4rem;
     box-shadow: var(--hq-shadow-md);
 }
 .hq-window-card-title {
@@ -365,22 +365,31 @@ html, body {
     margin-top: .3rem;
 }
 .hq-current-ticket {
-    font-size: 3.4rem;
+    font-size: 3rem;
     font-weight: 800;
     text-align: center;
     color: var(--hq-primary);
-    margin: 1rem 0;
+    margin: .4rem 0;
     font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.hq-current-ticket-empty {
+    color: var(--hq-divider);
 }
 .hq-service-timer {
     display: inline-flex;
     align-items: center;
     gap: .5rem;
-    margin-top: 1rem;
-    padding: .5rem 1.2rem;
+    margin-top: .7rem;
+    padding: .4rem 1.1rem;
     border-radius: 999px;
     background: rgba(44,123,166,.10);
     border: 1px solid rgba(44,123,166,.30);
+}
+/* Kept in the layout while idle so starting a service doesn't shift the
+   buttons underneath it — just greyed out until the clock is running. */
+.hq-service-timer.is-idle {
+    opacity: .45;
 }
 .hq-service-timer-icon {
     color: var(--hq-info);
@@ -397,21 +406,29 @@ html, body {
     font-size: .9rem;
 }
 .hq-action-btn {
-    min-height: 76px !important;
-    font-size: 1.15rem !important;
+    min-height: 62px !important;
+    font-size: 1.05rem !important;
     font-weight: 700 !important;
     border-radius: var(--hq-radius) !important;
 }
 
 /* ---------- Display board ---------- */
+/* The board is a fixed, non-scrolling viewport: the header and the news
+   ticker must stay visible at all times, and only the recent-calls list
+   scrolls internally when there are more calls than fit. */
 .hq-display-shell {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background: radial-gradient(circle at 20% 0%, #16456c 0%, #0A1F33 62%);
     color: #fff;
-    padding: 2.2rem;
+    padding: 1.6rem 2.2rem;
     display: flex;
     flex-direction: column;
-    gap: 1.4rem;
+    gap: 1.1rem;
+}
+.hq-display-header,
+.hq-ticker {
+    flex: 0 0 auto;
 }
 .hq-display-header {
     display: flex;
@@ -456,7 +473,9 @@ html, body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 2.5rem;
+    padding: 1.5rem;
+    min-height: 0;
+    overflow: hidden;
 }
 .hq-display-now-label {
     color: #9FC3DE;
@@ -464,10 +483,10 @@ html, body {
     font-weight: 600;
 }
 .hq-display-now-number {
-    font-size: clamp(4rem, 12vw, 9rem);
+    font-size: clamp(3rem, min(12vw, 18vh), 9rem);
     font-weight: 800;
     line-height: 1;
-    margin: .6rem 0;
+    margin: .5rem 0;
     text-shadow: 0 0 34px rgba(63,191,127,.55);
     font-variant-numeric: tabular-nums;
     animation: hq-pulse 1.7s ease-in-out infinite alternate;
@@ -505,6 +524,9 @@ html, body {
     border-inline-start: 5px solid var(--hq-info);
     border-radius: 12px;
     padding: .65rem 1rem;
+    /* Rows keep their height so the list scrolls instead of compressing
+       them into an unreadable stack when the board is full. */
+    flex: 0 0 auto;
 }
 .hq-recent-row .hq-recent-no {
     font-weight: 800;
@@ -523,7 +545,10 @@ html, body {
     font-size: .9rem;
 }
 .hq-recent-row.is-serving { border-inline-start-color: var(--hq-info); }
-.hq-recent-row.is-recall { border-inline-start-color: var(--hq-accent); animation: hq-glow 1.6s ease-in-out infinite alternate; }
+.hq-recent-row.is-recall { border-inline-start-color: var(--hq-accent); }
+/* Only the most recent call pulses — older rows stay static so the eye is
+   drawn to the number being announced right now, not to every served row. */
+.hq-recent-row.is-latest { animation: hq-glow 1.6s ease-in-out infinite alternate; }
 @keyframes hq-glow {
     from { box-shadow: 0 0 0 1px rgba(224,121,63,.35); }
     to   { box-shadow: 0 0 0 3px rgba(224,121,63,.75); }

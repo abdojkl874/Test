@@ -47,74 +47,84 @@
             <div class="hq-window-card-sub">@waitingCount مريض بانتظار هذه الخدمة</div>
         </div>
 
-        @if (currentTicket is not null)
-        {
-            <MudPaper Class="pa-5 text-center" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+        @* Every action stays on screen in a fixed grid, enabled or disabled by
+           the current ticket's state, so buttons never appear/disappear and
+           shift the layout under the employee's finger mid-shift. *@
+        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+            @if (currentTicket is not null)
+            {
                 <div class="hq-current-ticket">@currentTicket.Number</div>
                 <MudChip T="string" Class="@StatusChipClass(currentTicket.Status)">@StatusLabel(currentTicket.Status)</MudChip>
+            }
+            else
+            {
+                <div class="hq-current-ticket hq-current-ticket-empty">—</div>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">لا توجد تذكرة حالية</MudText>
+            }
 
-                @if (serviceStartedAt is not null)
-                {
-                    <div class="hq-service-timer">
-                        <MudIcon Icon="@Icons.Material.Filled.Timer" Class="hq-service-timer-icon" />
-                        <span class="hq-service-timer-value">@ElapsedText</span>
-                        <span class="hq-service-timer-label">زمن الخدمة</span>
-                    </div>
-                }
+            <div class="hq-service-timer @(serviceStartedAt is null ? "is-idle" : "")">
+                <MudIcon Icon="@Icons.Material.Filled.Timer" Class="hq-service-timer-icon" />
+                <span class="hq-service-timer-value">@ElapsedText</span>
+                <span class="hq-service-timer-label">زمن الخدمة</span>
+            </div>
 
-                <MudGrid Class="mt-4" Justify="Justify.Center">
-                    <MudItem xs="6" sm="4">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
-                                   StartIcon="@Icons.Material.Filled.Campaign" OnClick="RecallAsync">إعادة نداء</MudButton>
-                    </MudItem>
-                    @if (currentTicket.Status == TicketStatus.Called)
+            <MudGrid Class="mt-3" Justify="Justify.Center">
+                <MudItem xs="12">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
+                               StartIcon="@Icons.Material.Filled.NotificationsActive" OnClick="CallNextAsync"
+                               Disabled="isBusy || currentTicket is not null">
+                        استدعاء التالي
+                    </MudButton>
+                </MudItem>
+
+                <MudItem xs="6">
+                    @if (currentTicket?.Status == TicketStatus.InService)
                     {
-                        <MudItem xs="6" sm="4">
-                            <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="hq-action-btn"
-                                       StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="StartServiceAsync">بدء الخدمة</MudButton>
-                        </MudItem>
-                        <MudItem xs="6" sm="4">
-                            <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="hq-action-btn"
-                                       StartIcon="@Icons.Material.Filled.PersonOff" OnClick="SkipAsync">لم يحضر</MudButton>
-                        </MudItem>
-                    }
-                    <MudItem xs="6" sm="4">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" Class="hq-action-btn"
-                                   StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="ShowTransfer">تحويل</MudButton>
-                    </MudItem>
-                    <MudItem xs="6" sm="4">
                         <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="hq-action-btn"
                                    StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="CompleteAsync">إنهاء الخدمة</MudButton>
-                    </MudItem>
-                </MudGrid>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="hq-action-btn"
+                                   StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="StartServiceAsync"
+                                   Disabled="currentTicket?.Status != TicketStatus.Called">بدء الخدمة</MudButton>
+                    }
+                </MudItem>
+                <MudItem xs="6">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
+                               StartIcon="@Icons.Material.Filled.Campaign" OnClick="RecallAsync"
+                               Disabled="currentTicket is null">إعادة نداء</MudButton>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="hq-action-btn"
+                               StartIcon="@Icons.Material.Filled.PersonOff" OnClick="SkipAsync"
+                               Disabled="currentTicket?.Status != TicketStatus.Called">لم يحضر</MudButton>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" Class="hq-action-btn"
+                               StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="ShowTransfer"
+                               Disabled="currentTicket is null">تحويل</MudButton>
+                </MudItem>
+            </MudGrid>
 
-                @if (showTransfer)
-                {
-                    <MudPaper Class="pa-4 mt-4 text-start" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius);">
-                        <MudSelect T="string" Label="تحويل المريض إلى" @bind-Value="transferServiceId" Variant="Variant.Outlined" Class="mb-3">
-                            @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
-                            {
-                                <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
-                            }
-                        </MudSelect>
-                        <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TransferAsync">تأكيد التحويل</MudButton>
-                    </MudPaper>
-                }
+            @if (showTransfer && currentTicket is not null)
+            {
+                <MudPaper Class="pa-3 mt-3 text-start" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius);">
+                    <MudSelect T="string" Label="تحويل المريض إلى" @bind-Value="transferServiceId" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2">
+                        @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
+                        {
+                            <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TransferAsync">تأكيد التحويل</MudButton>
+                </MudPaper>
+            }
 
-                <MudTextField @bind-Value="notes" Label="ملاحظات (اختياري عند الإنهاء)" Variant="Variant.Outlined" Lines="2" Class="mt-4" />
-            </MudPaper>
-        }
-        else
-        {
-            <div class="text-center mt-6">
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Class="hq-action-btn px-8"
-                           StartIcon="@Icons.Material.Filled.NotificationsActive" OnClick="CallNextAsync" Disabled="isBusy">
-                    استدعاء التالي
-                </MudButton>
-            </div>
-        }
+            <MudTextField @bind-Value="notes" Label="ملاحظات (اختياري عند الإنهاء)" Variant="Variant.Outlined"
+                          Margin="Margin.Dense" Lines="2" Class="mt-3" Disabled="currentTicket is null" />
+        </MudPaper>
 
-        <div class="text-center mt-6">
+        <div class="text-center mt-3">
             <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="EndSessionAsync">إنهاء الجلسة</MudButton>
         </div>
     }

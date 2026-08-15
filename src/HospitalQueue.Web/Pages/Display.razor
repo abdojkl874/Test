@@ -45,9 +45,12 @@
                 }
                 else
                 {
-                    @foreach (var evt in recent)
+                    @for (var i = 0; i < recent.Count; i++)
                     {
-                        <div class="hq-recent-row @(evt.IsRecall ? "is-recall" : "is-serving")">
+                        var evt = recent[i];
+                        // Only the newest row pulses — see .hq-recent-row.is-latest.
+                        var latestClass = i == 0 ? "is-latest" : string.Empty;
+                        <div class="hq-recent-row @(evt.IsRecall ? "is-recall" : "is-serving") @latestClass">
                             <div class="hq-recent-no">@evt.Number</div>
                             <div class="hq-recent-meta">
                                 <div class="hq-recent-window">@evt.CounterName</div>
