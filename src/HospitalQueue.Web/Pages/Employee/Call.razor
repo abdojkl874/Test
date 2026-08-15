@@ -53,6 +53,15 @@
                 <div class="hq-current-ticket">@currentTicket.Number</div>
                 <MudChip T="string" Class="@StatusChipClass(currentTicket.Status)">@StatusLabel(currentTicket.Status)</MudChip>
 
+                @if (serviceStartedAt is not null)
+                {
+                    <div class="hq-service-timer">
+                        <MudIcon Icon="@Icons.Material.Filled.Timer" Class="hq-service-timer-icon" />
+                        <span class="hq-service-timer-value">@ElapsedText</span>
+                        <span class="hq-service-timer-label">زمن الخدمة</span>
+                    </div>
+                }
+
                 <MudGrid Class="mt-4" Justify="Justify.Center">
                     <MudItem xs="6" sm="4">
                         <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
@@ -127,6 +136,48 @@
     private string transferServiceId = string.Empty;
     private string? notes;
 
+    private DateTime? serviceStartedAt;
+    private System.Threading.Timer? serviceTimer;
+
+    private string ElapsedText
+    {
+        get
+        {
+            if (serviceStartedAt is null)
+            {
+                return "00:00";
+            }
+
+            var elapsed = DateTime.UtcNow - serviceStartedAt.Value;
+            if (elapsed < TimeSpan.Zero)
+            {
+                elapsed = TimeSpan.Zero;
+            }
+
+            return elapsed.TotalHours >= 1
+                ? $"{(int)elapsed.TotalHours:D2}:{elapsed.Minutes:D2}:{elapsed.Seconds:D2}"
+                : $"{elapsed.Minutes:D2}:{elapsed.Seconds:D2}";
+        }
+    }
+
+    private void StartServiceTimer(DateTime startedAtUtc)
+    {
+        serviceStartedAt = startedAtUtc;
+        serviceTimer?.Dispose();
+        serviceTimer = new System.Threading.Timer(
+            _ => InvokeAsync(StateHasChanged),
+            null,
+            TimeSpan.FromSeconds(1),
+            TimeSpan.FromSeconds(1));
+    }
+
+    private void StopServiceTimer()
+    {
+        serviceStartedAt = null;
+        serviceTimer?.Dispose();
+        serviceTimer = null;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -195,6 +246,7 @@
                 currentTicket = ticket;
                 notes = null;
                 showTransfer = false;
+                StopServiceTimer();
             }
         }
         catch (QueueOperationException ex)
@@ -226,6 +278,7 @@
         try
         {
             currentTicket = await QueueService.StartServiceAsync(currentTicket.Id);
+            StartServiceTimer(DateTime.UtcNow);
         }
         catch (QueueOperationException ex)
         {
@@ -242,6 +295,7 @@
             currentTicket = null;
             notes = null;
             showTransfer = false;
+            StopServiceTimer();
         }
         catch (QueueOperationException ex)
         {
@@ -257,6 +311,7 @@
             await QueueService.SkipAsync(currentTicket.Id);
             currentTicket = null;
             showTransfer = false;
+            StopServiceTimer();
         }
         catch (QueueOperationException ex)
         {
@@ -280,6 +335,7 @@
             currentTicket = null;
             showTransfer = false;
             transferServiceId = string.Empty;
+            StopServiceTimer();
         }
         catch (QueueOperationException ex)
         {
@@ -295,6 +351,7 @@
         currentTicket = null;
         selectedCounterId = string.Empty;
         selectedServiceId = string.Empty;
+        StopServiceTimer();
     }
 
     private async Task OnQueueChangedAsync(Guid serviceId)
@@ -323,5 +380,6 @@
     public void Dispose()
     {
         Bus.QueueChanged -= OnQueueChangedAsync;
+        serviceTimer?.Dispose();
     }
 }

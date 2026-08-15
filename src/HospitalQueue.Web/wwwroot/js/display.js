@@ -19,10 +19,11 @@ window.hospitalQueueDisplay = {
         }
     },
 
-    announce: function (ticketNumber, counterName) {
+    announce: function (ticketNumber, serviceName) {
         try {
             if (!window.speechSynthesis) return;
-            const utterance = new SpeechSynthesisUtterance(`الرقم ${ticketNumber}، إلى ${counterName}`);
+            const utterance = new SpeechSynthesisUtterance(
+                `الرجاء من صاحب الرقم ${ticketNumber} التوجه الى عيادة ${serviceName}`);
             utterance.lang = "ar-SA";
             window.speechSynthesis.speak(utterance);
         } catch (e) {
@@ -30,8 +31,8 @@ window.hospitalQueueDisplay = {
         }
     },
 
-    ticketCalled: function (ticketNumber, counterName) {
+    ticketCalled: function (ticketNumber, serviceName) {
         this.beep();
-        this.announce(ticketNumber, counterName);
+        this.announce(ticketNumber, serviceName);
     }
 };
