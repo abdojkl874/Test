@@ -13,7 +13,7 @@
 
 <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
     <MudText Typo="Typo.subtitle1" Class="mb-3">إضافة شباك جديد</MudText>
-    <MudGrid AlignItems="Center">
+    <MudGrid>
         <MudItem xs="12" sm="6">
             <MudTextField @bind-Value="newName" Label="الاسم" Variant="Variant.Outlined" Placeholder="مثال: شباك 4" />
         </MudItem>
@@ -26,7 +26,7 @@
 @foreach (var counter in counters)
 {
     <MudPaper Class="pa-4 mb-3" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);" @key="counter.Id">
-        <MudGrid AlignItems="Center">
+        <MudGrid>
             <MudItem xs="12" sm="6">
                 <MudTextField T="string" @bind-Value="counter.Name" Label="اسم الشباك" Variant="Variant.Outlined" />
             </MudItem>
