@@ -335,14 +335,19 @@ public class QueueService : IQueueService
 
     private async Task<int> NextSequenceNumberAsync(Guid serviceId, DateOnly queueDate, CancellationToken ct)
     {
-        return await _db.Database.SqlQueryRaw<int>(
+        // SingleAsync() would make EF Core try to compose extra SQL around this
+        // (e.g. to enforce "exactly one row"), which fails because an
+        // INSERT ... RETURNING statement isn't a composable SELECT. ToListAsync()
+        // reads the raw result set as-is, so it works with non-composable SQL.
+        var results = await _db.Database.SqlQueryRaw<int>(
             """
             INSERT INTO "DailySequences" ("ServiceId", "QueueDate", "LastNumber")
             VALUES ({0}, {1}, 1)
             ON CONFLICT ("ServiceId", "QueueDate")
             DO UPDATE SET "LastNumber" = "DailySequences"."LastNumber" + 1
             RETURNING "LastNumber"
-            """, serviceId, queueDate).SingleAsync(ct);
+            """, serviceId, queueDate).ToListAsync(ct);
+        return results.Single();
     }
 
     private async Task<Ticket> LoadTicketAsync(Guid ticketId, CancellationToken ct)
