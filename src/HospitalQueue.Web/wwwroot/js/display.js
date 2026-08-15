@@ -41,11 +41,24 @@ window.hospitalQueueDisplay = {
         setTimeout(run, 1000);
     },
 
+    // Ticket numbers are stored as "B-001", which a speech engine reads out
+    // literally: the dash becomes an audible "dash"/pause and the padding
+    // becomes "zero zero one". Spoken form keeps the service code and the
+    // significant digits only, so "B-001" is announced as "B 1".
+    _spokenNumber: function (ticketNumber) {
+        return String(ticketNumber || "")
+            .split("-")
+            .map(part => /^\d+$/.test(part) ? String(parseInt(part, 10)) : part)
+            .filter(part => part.length > 0)
+            .join(" ");
+    },
+
     announce: function (ticketNumber, serviceName) {
         try {
             if (!window.speechSynthesis) return;
 
-            const text = `الرجاء من صاحب الرقم ${ticketNumber} التوجه الى عيادة ${serviceName}`;
+            const spoken = this._spokenNumber(ticketNumber);
+            const text = `الرجاء من صاحب الرقم ${spoken} التوجه الى عيادة ${serviceName}`;
 
             this._withVoices(function (voices) {
                 try {

@@ -14,116 +14,122 @@
 <PageTitle>شاشة النداء</PageTitle>
 
 <div class="hq-call-shell">
-    @if (activeSession is null)
-    {
-        <MudPaper Class="pa-5" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
-            <MudText Typo="Typo.h5" Class="mb-4">بدء جلسة عمل</MudText>
-
-            <MudSelect T="string" Label="الشباك" @bind-Value="selectedCounterId" @bind-Value:after="OnSelectedCounterChangedAsync"
-                       Variant="Variant.Outlined" Class="mb-4">
-                @foreach (var counter in counters)
-                {
-                    <MudSelectItem Value="@counter.Id.ToString()">@counter.Name</MudSelectItem>
-                }
-            </MudSelect>
-
-            @if (availableServices.Any())
-            {
-                <MudSelect T="string" Label="الخدمة / العيادة" @bind-Value="selectedServiceId" Variant="Variant.Outlined" Class="mb-4">
+    @* The counter/clinic pickers live on the main screen rather than behind a
+       separate "start session" step: picking (or changing) either one opens the
+       matching session straight away. *@
+    <div class="hq-window-card mb-3">
+        <MudGrid>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" Label="الشباك" Value="selectedCounterId" ValueChanged="OnCounterChangedAsync"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-session-select">
+                    @foreach (var counter in counters)
+                    {
+                        <MudSelectItem Value="@counter.Id.ToString()">@counter.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="6">
+                <MudSelect T="string" Label="الخدمة / العيادة" Value="selectedServiceId" ValueChanged="OnServiceChangedAsync"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-session-select"
+                           Disabled="!availableServices.Any()">
                     @foreach (var service in availableServices)
                     {
                         <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
                     }
                 </MudSelect>
-            }
-
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" OnClick="StartSessionAsync">بدء العمل</MudButton>
-        </MudPaper>
-    }
-    else
-    {
-        <div class="hq-window-card mb-4">
-            <div class="hq-window-card-title">@activeSession.Counter.Name — @activeSession.Service.NameAr</div>
-            <div class="hq-window-card-sub">@waitingCount مريض بانتظار هذه الخدمة</div>
-        </div>
-
-        @* Every action stays on screen in a fixed grid, enabled or disabled by
-           the current ticket's state, so buttons never appear/disappear and
-           shift the layout under the employee's finger mid-shift. *@
-        <MudPaper Class="pa-4 text-center" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
-            @if (currentTicket is not null)
+            </MudItem>
+        </MudGrid>
+        <div class="hq-window-card-sub">
+            @if (activeSession is null)
             {
-                <div class="hq-current-ticket">@currentTicket.Number</div>
-                <MudChip T="string" Class="@StatusChipClass(currentTicket.Status)">@StatusLabel(currentTicket.Status)</MudChip>
+                <text>اختر الشباك والعيادة لبدء العمل</text>
             }
             else
             {
-                <div class="hq-current-ticket hq-current-ticket-empty">—</div>
-                <MudText Typo="Typo.body2" Color="Color.Secondary">لا توجد تذكرة حالية</MudText>
+                <text>@waitingCount مريض بانتظار هذه الخدمة</text>
             }
+        </div>
+    </div>
 
-            <div class="hq-service-timer @(serviceStartedAt is null ? "is-idle" : "")">
-                <MudIcon Icon="@Icons.Material.Filled.Timer" Class="hq-service-timer-icon" />
-                <span class="hq-service-timer-value">@ElapsedText</span>
-                <span class="hq-service-timer-label">زمن الخدمة</span>
-            </div>
+    @* Every action stays on screen in a fixed grid, enabled or disabled by
+       the current ticket's state, so buttons never appear/disappear and
+       shift the layout under the employee's finger mid-shift. *@
+    <MudPaper Class="pa-4 text-center" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+        @if (currentTicket is not null)
+        {
+            <div class="hq-current-ticket">@currentTicket.Number</div>
+            <MudChip T="string" Class="@StatusChipClass(currentTicket.Status)">@StatusLabel(currentTicket.Status)</MudChip>
+        }
+        else
+        {
+            <div class="hq-current-ticket hq-current-ticket-empty">—</div>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">لا توجد تذكرة حالية</MudText>
+        }
 
-            <MudGrid Class="mt-3" Justify="Justify.Center">
-                <MudItem xs="12">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
-                               StartIcon="@Icons.Material.Filled.NotificationsActive" OnClick="CallNextAsync"
-                               Disabled="isBusy || currentTicket is not null">
-                        استدعاء التالي
-                    </MudButton>
-                </MudItem>
+        <div class="hq-service-timer @(serviceStartedAt is null ? "is-idle" : "")">
+            <MudIcon Icon="@Icons.Material.Filled.Timer" Class="hq-service-timer-icon" />
+            <span class="hq-service-timer-value">@ElapsedText</span>
+            <span class="hq-service-timer-label">زمن الخدمة</span>
+        </div>
 
-                <MudItem xs="6">
-                    @if (currentTicket?.Status == TicketStatus.InService)
+        <MudGrid Class="mt-3" Justify="Justify.Center">
+            <MudItem xs="12">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
+                           StartIcon="@Icons.Material.Filled.NotificationsActive" OnClick="CallNextAsync"
+                           Disabled="isBusy || activeSession is null || currentTicket is not null">
+                    استدعاء التالي
+                </MudButton>
+            </MudItem>
+
+            <MudItem xs="6">
+                @if (currentTicket?.Status == TicketStatus.InService)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="hq-action-btn"
+                               StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="CompleteAsync">إنهاء الخدمة</MudButton>
+                }
+                else
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="hq-action-btn"
+                               StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="StartServiceAsync"
+                               Disabled="currentTicket?.Status != TicketStatus.Called">بدء الخدمة</MudButton>
+                }
+            </MudItem>
+            <MudItem xs="6">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
+                           StartIcon="@Icons.Material.Filled.Campaign" OnClick="RecallAsync"
+                           Disabled="currentTicket is null">إعادة نداء</MudButton>
+            </MudItem>
+            <MudItem xs="6">
+                <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="hq-action-btn"
+                           StartIcon="@Icons.Material.Filled.PersonOff" OnClick="SkipAsync"
+                           Disabled="currentTicket?.Status != TicketStatus.Called">لم يحضر</MudButton>
+            </MudItem>
+            <MudItem xs="6">
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" Class="hq-action-btn"
+                           StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="ShowTransfer"
+                           Disabled="currentTicket is null">تحويل</MudButton>
+            </MudItem>
+        </MudGrid>
+
+        @if (showTransfer && currentTicket is not null)
+        {
+            <MudPaper Class="pa-3 mt-3 text-start" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius);">
+                <MudSelect T="string" Label="تحويل المريض إلى" @bind-Value="transferServiceId" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2">
+                    @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
                     {
-                        <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Class="hq-action-btn"
-                                   StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="CompleteAsync">إنهاء الخدمة</MudButton>
+                        <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
                     }
-                    else
-                    {
-                        <MudButton Variant="Variant.Filled" Color="Color.Info" FullWidth="true" Class="hq-action-btn"
-                                   StartIcon="@Icons.Material.Filled.PlayArrow" OnClick="StartServiceAsync"
-                                   Disabled="currentTicket?.Status != TicketStatus.Called">بدء الخدمة</MudButton>
-                    }
-                </MudItem>
-                <MudItem xs="6">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
-                               StartIcon="@Icons.Material.Filled.Campaign" OnClick="RecallAsync"
-                               Disabled="currentTicket is null">إعادة نداء</MudButton>
-                </MudItem>
-                <MudItem xs="6">
-                    <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="hq-action-btn"
-                               StartIcon="@Icons.Material.Filled.PersonOff" OnClick="SkipAsync"
-                               Disabled="currentTicket?.Status != TicketStatus.Called">لم يحضر</MudButton>
-                </MudItem>
-                <MudItem xs="6">
-                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" FullWidth="true" Class="hq-action-btn"
-                               StartIcon="@Icons.Material.Filled.SwapHoriz" OnClick="ShowTransfer"
-                               Disabled="currentTicket is null">تحويل</MudButton>
-                </MudItem>
-            </MudGrid>
+                </MudSelect>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TransferAsync">تأكيد التحويل</MudButton>
+            </MudPaper>
+        }
 
-            @if (showTransfer && currentTicket is not null)
-            {
-                <MudPaper Class="pa-3 mt-3 text-start" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius);">
-                    <MudSelect T="string" Label="تحويل المريض إلى" @bind-Value="transferServiceId" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2">
-                        @foreach (var service in allServices.Where(s => s.Id != currentTicket.ServiceId))
-                        {
-                            <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
-                        }
-                    </MudSelect>
-                    <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="TransferAsync">تأكيد التحويل</MudButton>
-                </MudPaper>
-            }
+        <MudTextField @bind-Value="notes" Label="ملاحظات (اختياري عند الإنهاء)" Variant="Variant.Outlined"
+                      Margin="Margin.Dense" Lines="2" Class="mt-3" Disabled="currentTicket is null" />
+    </MudPaper>
 
-            <MudTextField @bind-Value="notes" Label="ملاحظات (اختياري عند الإنهاء)" Variant="Variant.Outlined"
-                          Margin="Margin.Dense" Lines="2" Class="mt-3" Disabled="currentTicket is null" />
-        </MudPaper>
-
+    @if (activeSession is not null)
+    {
         <div class="text-center mt-3">
             <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="EndSessionAsync">إنهاء الجلسة</MudButton>
         </div>
@@ -205,22 +211,75 @@
         if (existing is not null)
         {
             activeSession = existing;
+            selectedCounterId = existing.CounterId.ToString();
+            RefreshAvailableServices();
+            selectedServiceId = existing.ServiceId.ToString();
             waitingCount = await QueueService.GetWaitingCountAsync(existing.ServiceId);
         }
     }
 
-    private void OnSelectedCounterChangedAsync()
+    private void RefreshAvailableServices()
     {
         availableServices = counters.FirstOrDefault(c => c.Id.ToString() == selectedCounterId)
             ?.CounterServices.Select(cs => cs.Service).Where(s => s.IsActive).ToList() ?? new();
-        selectedServiceId = availableServices.Count == 1 ? availableServices[0].Id.ToString() : string.Empty;
     }
 
-    private async Task StartSessionAsync()
+    private async Task OnCounterChangedAsync(string counterId)
+    {
+        if (!await CanSwitchSessionAsync())
+        {
+            return;
+        }
+
+        selectedCounterId = counterId;
+        RefreshAvailableServices();
+
+        // Keep the clinic only if the new counter also serves it, otherwise fall
+        // back to its single service (or clear it and wait for a pick).
+        if (!availableServices.Any(s => s.Id.ToString() == selectedServiceId))
+        {
+            selectedServiceId = availableServices.Count == 1 ? availableServices[0].Id.ToString() : string.Empty;
+        }
+
+        await SyncSessionAsync();
+    }
+
+    private async Task OnServiceChangedAsync(string serviceId)
+    {
+        if (!await CanSwitchSessionAsync())
+        {
+            return;
+        }
+
+        selectedServiceId = serviceId;
+        await SyncSessionAsync();
+    }
+
+    /// <summary>
+    /// Switching counter/clinic ends the current session, which would strand a
+    /// patient who is already being called or served — so make the employee
+    /// finish (or skip/transfer) that ticket first.
+    /// </summary>
+    private Task<bool> CanSwitchSessionAsync()
+    {
+        if (currentTicket is not null)
+        {
+            Snackbar.Add("الرجاء إنهاء التذكرة الحالية قبل تغيير الشباك أو العيادة", Severity.Warning);
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(true);
+    }
+
+    private async Task SyncSessionAsync()
     {
         if (!Guid.TryParse(selectedCounterId, out var counterId) || !Guid.TryParse(selectedServiceId, out var serviceId))
         {
-            Snackbar.Add("الرجاء اختيار الشباك والخدمة", Severity.Warning);
+            return;
+        }
+
+        if (activeSession is not null && activeSession.CounterId == counterId && activeSession.ServiceId == serviceId)
+        {
             return;
         }
 
@@ -361,6 +420,8 @@
         currentTicket = null;
         selectedCounterId = string.Empty;
         selectedServiceId = string.Empty;
+        availableServices.Clear();
+        waitingCount = 0;
         StopServiceTimer();
     }
 

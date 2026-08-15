@@ -364,6 +364,23 @@ html, body {
     font-size: .92rem;
     margin-top: .3rem;
 }
+/* The counter/clinic pickers sit on the card's dark gradient, so their
+   MudBlazor chrome has to be re-tinted for light-on-dark. */
+.hq-session-select .mud-input-control .mud-input,
+.hq-session-select .mud-input-control .mud-input-label,
+.hq-session-select .mud-select-input .mud-input-slot {
+    color: #fff !important;
+}
+.hq-session-select .mud-input-outlined-border {
+    border-color: rgba(255, 255, 255, .45) !important;
+}
+.hq-session-select .mud-input-control:hover .mud-input-outlined-border {
+    border-color: rgba(255, 255, 255, .75) !important;
+}
+.hq-session-select .mud-input-adornment .mud-icon-root,
+.hq-session-select .mud-select-input .mud-input-adornment-end {
+    color: rgba(255, 255, 255, .85) !important;
+}
 .hq-current-ticket {
     font-size: 3rem;
     font-weight: 800;
