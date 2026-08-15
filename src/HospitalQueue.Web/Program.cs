@@ -10,6 +10,13 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Serves static files bundled inside referenced packages (e.g. MudBlazor's
+// wwwroot/MudBlazor.min.css/js under _content/MudBlazor/...). ASP.NET Core
+// only wires this up automatically when it detects the Development
+// environment; calling it explicitly makes package assets resolve
+// regardless of how the environment ends up configured on a given machine.
+builder.WebHost.UseStaticWebAssets();
+
 var connectionString = builder.Configuration.GetConnectionString("Default")
     ?? throw new InvalidOperationException("Connection string 'Default' is not configured.");
 
