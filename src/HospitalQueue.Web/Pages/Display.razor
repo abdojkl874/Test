@@ -107,6 +107,7 @@
         _ = InvokeAsync(async () =>
         {
             latest = evt;
+            recent.RemoveAll(r => r.Number == evt.Number && r.ServiceId == evt.ServiceId);
             recent.Insert(0, evt);
             if (recent.Count > 15)
             {

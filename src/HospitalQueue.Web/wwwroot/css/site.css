@@ -566,6 +566,44 @@ html, body {
     gap: .3rem;
 }
 
+/* ---------- Users table ---------- */
+.hq-users-table table {
+    border-collapse: separate;
+    border-spacing: 0 6px;
+}
+.hq-users-table td, .hq-users-table th {
+    vertical-align: middle;
+}
+.hq-users-name-field {
+    min-width: 160px;
+}
+.hq-users-code-field {
+    min-width: 110px;
+}
+.hq-role-grid {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 2px;
+    column-gap: 1.1rem;
+    min-width: 220px;
+}
+.hq-role-check {
+    flex: 0 0 auto;
+}
+.hq-role-check .mud-checkbox-label {
+    white-space: nowrap;
+}
+.hq-users-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+}
+.hq-users-password-field {
+    min-width: 160px;
+}
+
 /* ---------- Receipt designer preview ---------- */
 .hq-receipt-preview {
     background: #fff;

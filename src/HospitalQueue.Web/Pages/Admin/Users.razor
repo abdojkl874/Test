@@ -40,32 +40,41 @@
 </MudPaper>
 
 <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
-    <MudTable Items="userRows" Dense="true" Hover="true">
+    <MudTable Items="userRows" Dense="true" Hover="true" Class="hq-users-table">
         <HeaderContent>
             <MudTh>اسم المستخدم</MudTh>
             <MudTh>الاسم الكامل</MudTh>
+            <MudTh>رقم الموظف</MudTh>
             <MudTh>الأدوار</MudTh>
             <MudTh>الحالة</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="اسم المستخدم">@context.User.UserName</MudTd>
-            <MudTd DataLabel="الاسم الكامل">@context.User.FullName</MudTd>
+            <MudTd DataLabel="الاسم الكامل">
+                <MudTextField T="string" @bind-Value="context.EditFullName" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-name-field" />
+            </MudTd>
+            <MudTd DataLabel="رقم الموظف">
+                <MudTextField T="string" @bind-Value="context.EditEmployeeCode" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-code-field" />
+            </MudTd>
             <MudTd DataLabel="الأدوار">
-                @foreach (var role in AppRoles.All)
-                {
-                    <MudCheckBox T="bool" Value="@context.Roles.Contains(role)" ValueChanged="@(v => ToggleUserRoleAsync(context, role, v))" Label="@RoleLabel(role)" Dense="true" Class="d-inline-flex me-3" />
-                }
+                <div class="hq-role-grid">
+                    @foreach (var role in AppRoles.All)
+                    {
+                        <MudCheckBox T="bool" Value="@context.Roles.Contains(role)" ValueChanged="@(v => ToggleUserRoleAsync(context, role, v))" Label="@RoleLabel(role)" Dense="true" Class="hq-role-check" />
+                    }
+                </div>
             </MudTd>
             <MudTd DataLabel="الحالة">
                 <MudChip T="string" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.User.IsActive ? "مفعّل" : "معطّل")</MudChip>
             </MudTd>
             <MudTd>
-                <div class="d-flex align-center flex-wrap" style="gap:8px;">
+                <div class="hq-users-actions">
+                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="() => SaveUserInfoAsync(context)">حفظ</MudButton>
                     <MudButton Size="Size.Small" Variant="Variant.Filled" Color="@(context.User.IsActive ? Color.Error : Color.Success)" OnClick="() => ToggleActiveAsync(context)">
                         @(context.User.IsActive ? "تعطيل" : "تفعيل")
                     </MudButton>
-                    <MudTextField T="string" @bind-Value="context.NewPassword" Placeholder="كلمة مرور جديدة" Variant="Variant.Outlined" Margin="Margin.Dense" Style="width:170px;" />
+                    <MudTextField T="string" @bind-Value="context.NewPassword" Placeholder="كلمة مرور جديدة" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-password-field" />
                     <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="() => ResetPasswordAsync(context)">تصفير كلمة المرور</MudButton>
                 </div>
             </MudTd>
@@ -79,6 +88,8 @@
         public ApplicationUser User { get; set; } = null!;
         public List<string> Roles { get; set; } = new();
         public string? NewPassword { get; set; }
+        public string EditFullName { get; set; } = string.Empty;
+        public string EditEmployeeCode { get; set; } = string.Empty;
     }
 
     private List<UserRow> userRows = new();
@@ -96,7 +107,13 @@
         foreach (var user in UserManager.Users.OrderBy(u => u.UserName).ToList())
         {
             var roles = await UserManager.GetRolesAsync(user);
-            userRows.Add(new UserRow { User = user, Roles = roles.ToList() });
+            userRows.Add(new UserRow
+            {
+                User = user,
+                Roles = roles.ToList(),
+                EditFullName = user.FullName,
+                EditEmployeeCode = user.EmployeeCode ?? string.Empty,
+            });
         }
     }
 
@@ -156,6 +173,26 @@
             await UserManager.RemoveFromRoleAsync(row.User, role);
             row.Roles.Remove(role);
         }
+    }
+
+    private async Task SaveUserInfoAsync(UserRow row)
+    {
+        if (string.IsNullOrWhiteSpace(row.EditFullName))
+        {
+            Snackbar.Add("الرجاء إدخال الاسم الكامل", Severity.Warning);
+            return;
+        }
+
+        row.User.FullName = row.EditFullName.Trim();
+        row.User.EmployeeCode = string.IsNullOrWhiteSpace(row.EditEmployeeCode) ? null : row.EditEmployeeCode.Trim();
+        var result = await UserManager.UpdateAsync(row.User);
+        if (!result.Succeeded)
+        {
+            Snackbar.Add(string.Join("، ", result.Errors.Select(e => e.Description)), Severity.Error);
+            return;
+        }
+
+        Snackbar.Add($"تم حفظ بيانات {row.User.UserName}", Severity.Success);
     }
 
     private async Task ToggleActiveAsync(UserRow row)
