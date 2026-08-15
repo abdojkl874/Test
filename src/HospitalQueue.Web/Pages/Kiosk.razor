@@ -85,12 +85,13 @@
         try
         {
             issuedTicket = await QueueService.CreateTicketAsync(serviceId);
-            printSucceeded = await JS.InvokeAsync<bool>(
-                "hospitalQueuePrint.printTicket",
-                issuedTicket.Number,
-                issuedTicket.ServiceName,
-                orgName,
-                DateTime.Now.ToString("o"));
+
+            // Printing must never be able to freeze the kiosk: window.print()
+            // blocks the browser tab until its dialog is dismissed (e.g. no
+            // default printer configured), so it runs detached from this
+            // method — the confirmation screen shows immediately regardless
+            // of what happens with the print dialog.
+            _ = PrintTicketSafelyAsync(issuedTicket);
 
             resetTimer?.Dispose();
             resetTimer = new System.Timers.Timer(10000) { AutoReset = false };
@@ -105,6 +106,34 @@
         {
             isBusy = false;
         }
+    }
+
+    private async Task PrintTicketSafelyAsync(TicketDto ticket)
+    {
+        var ok = false;
+        try
+        {
+            ok = await JS.InvokeAsync<bool>(
+                "hospitalQueuePrint.printTicket",
+                ticket.Number,
+                ticket.ServiceName,
+                orgName,
+                DateTime.Now.ToString("o"));
+        }
+        catch
+        {
+            // Printer/dialog problems are surfaced to the patient below, but
+            // must never crash the circuit or block issuing further tickets.
+        }
+
+        await InvokeAsync(() =>
+        {
+            if (issuedTicket?.Id == ticket.Id)
+            {
+                printSucceeded = ok;
+                StateHasChanged();
+            }
+        });
     }
 
     private void Reset()
