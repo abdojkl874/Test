@@ -30,7 +30,7 @@
             <MudText Typo="Typo.body2" Class="mb-2">الدور / نوع الشاشة</MudText>
             @foreach (var role in AppRoles.All)
             {
-                <MudCheckBox T="bool" Value="@newRoles.Contains(role)" ValueChanged="@(v => ToggleNewRole(role, v))" Label="@role" Color="Color.Primary" Class="d-inline-flex me-4" />
+                <MudCheckBox T="bool" Value="@newRoles.Contains(role)" ValueChanged="@(v => ToggleNewRole(role, v))" Label="@RoleLabel(role)" Color="Color.Primary" Class="d-inline-flex me-4" />
             }
         </MudItem>
         <MudItem xs="12">
@@ -54,7 +54,7 @@
             <MudTd DataLabel="الأدوار">
                 @foreach (var role in AppRoles.All)
                 {
-                    <MudCheckBox T="bool" Value="@context.Roles.Contains(role)" ValueChanged="@(v => ToggleUserRoleAsync(context, role, v))" Label="@role" Dense="true" Class="d-inline-flex me-3" />
+                    <MudCheckBox T="bool" Value="@context.Roles.Contains(role)" ValueChanged="@(v => ToggleUserRoleAsync(context, role, v))" Label="@RoleLabel(role)" Dense="true" Class="d-inline-flex me-3" />
                 }
             </MudTd>
             <MudTd DataLabel="الحالة">
@@ -183,4 +183,13 @@
         Snackbar.Add($"تم تحديث كلمة مرور {row.User.UserName}", Severity.Success);
         row.NewPassword = null;
     }
+
+    private static string RoleLabel(string role) => role switch
+    {
+        AppRoles.Admin => "مدير",
+        AppRoles.Employee => "موظف",
+        AppRoles.Kiosk => "كشك",
+        AppRoles.Display => "عرض",
+        _ => role,
+    };
 }
