@@ -566,6 +566,19 @@ html, body {
     gap: .3rem;
 }
 
+/* ---------- Receipt designer preview ---------- */
+.hq-receipt-preview {
+    background: #fff;
+    color: #000;
+    border: 1px dashed var(--hq-divider);
+    border-radius: 6px;
+    width: 280px;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 14px 16px;
+    font-family: Tahoma, Arial, sans-serif;
+}
+
 /* ---------- Misc ---------- */
 .hq-empty { text-align: center; color: var(--hq-muted); padding: 2.5rem 1rem; }
 .mud-table .mud-table-head .mud-table-cell { font-weight: 700 !important; background: #F8FAFB !important; }

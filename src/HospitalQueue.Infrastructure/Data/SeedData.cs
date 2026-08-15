@@ -1,5 +1,7 @@
+using System.Text.Json;
 using HospitalQueue.Domain.Constants;
 using HospitalQueue.Domain.Entities;
+using HospitalQueue.Domain.Receipts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,12 +34,19 @@ public static class SeedData
         var config = services.GetRequiredService<IConfiguration>();
         var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("SeedData");
 
-        // No EF Core migrations are checked in yet (see README) — EnsureCreated
-        // stands the schema up directly from the current model so `dotnet run`
-        // works out of the box. Once real migrations are generated, switch this
-        // to db.Database.MigrateAsync() so schema changes apply incrementally
-        // instead of only working against an empty database.
-        await db.Database.EnsureCreatedAsync();
+        // Applies any pending EF Core migrations (see README's "قبل الإنتاج"
+        // section for one-time setup: dotnet ef migrations add InitialCreate).
+        // On a fresh clone with no Migrations/ folder yet, this is a no-op and
+        // falls back to EnsureCreatedAsync() so `dotnet run` still works
+        // out of the box before migrations are set up.
+        if (db.Database.GetMigrations().Any())
+        {
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
 
         foreach (var roleName in AppRoles.All)
         {
@@ -122,6 +131,29 @@ public static class SeedData
                 OrgNameAr = "نظام إدارة طابور المشفى",
                 TickerEnabled = false,
                 TickerText = "مرحباً بكم — يرجى الانتظار حتى يتم مناداة رقمكم",
+            });
+            await db.SaveChangesAsync();
+        }
+
+        if (!await db.ReceiptTemplates.AnyAsync())
+        {
+            var defaultElements = new List<ReceiptElement>
+            {
+                new() { Type = ReceiptElementType.OrgName, Bold = true, FontSize = 13 },
+                new() { Type = ReceiptElementType.Divider },
+                new() { Type = ReceiptElementType.ServiceName, Bold = true, FontSize = 15 },
+                new() { Type = ReceiptElementType.StaticText, Text = "رقم تذكرتك", FontSize = 11 },
+                new() { Type = ReceiptElementType.TicketNumber, Bold = true, FontSize = 46 },
+                new() { Type = ReceiptElementType.DateTimeStamp, FontSize = 9 },
+                new() { Type = ReceiptElementType.StaticText, Text = "يرجى الانتظار حتى يتم مناداة رقمك", Bold = true, FontSize = 9 },
+            };
+
+            db.ReceiptTemplates.Add(new ReceiptTemplate
+            {
+                Id = Guid.NewGuid(),
+                Name = "القالب الافتراضي",
+                IsActive = true,
+                ElementsJson = JsonSerializer.Serialize(defaultElements),
             });
             await db.SaveChangesAsync();
         }

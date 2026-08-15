@@ -59,6 +59,7 @@
     private bool isBusy;
     private bool printSucceeded = true;
     private string orgName = "نظام إدارة طابور المشفى";
+    private string? activeTemplateElementsJson;
     private System.Timers.Timer? resetTimer;
 
     protected override async Task OnInitializedAsync()
@@ -69,6 +70,9 @@
         {
             orgName = settings.OrgNameAr;
         }
+
+        var activeTemplate = await Db.ReceiptTemplates.FirstOrDefaultAsync(t => t.IsActive);
+        activeTemplateElementsJson = activeTemplate?.ElementsJson;
     }
 
     private Task EnterFullscreenAsync() => JS.InvokeVoidAsync("hospitalQueueKiosk.enter").AsTask();
@@ -118,7 +122,8 @@
                 ticket.Number,
                 ticket.ServiceName,
                 orgName,
-                DateTime.Now.ToString("o"));
+                DateTime.Now.ToString("o"),
+                activeTemplateElementsJson);
         }
         catch
         {

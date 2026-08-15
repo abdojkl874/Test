@@ -1,0 +1,276 @@
+@page "/admin/receipt-designer"
+@attribute [Authorize(Roles = AppRoles.Admin)]
+@layout AdminLayout
+@using System.Text.Json
+@using HospitalQueue.Domain.Entities
+@using HospitalQueue.Domain.Receipts
+@using HospitalQueue.Infrastructure.Data
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext Db
+@inject ISnackbar Snackbar
+
+<PageTitle>مصمّم الوصل</PageTitle>
+
+<MudText Typo="Typo.h4" Class="hq-page-title">مصمّم قالب الوصل (التذكرة المطبوعة)</MudText>
+
+<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudGrid>
+        <MudItem xs="12" sm="5">
+            <MudSelect T="Guid" Label="القالب" Value="selectedId" ValueChanged="SelectTemplateAsync" Variant="Variant.Outlined">
+                @foreach (var t in templates)
+                {
+                    <MudSelectItem Value="@t.Id">@t.Name @(t.IsActive ? "(مفعّل)" : "")</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="7" Class="d-flex" Style="gap:8px; flex-wrap:wrap;">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="CreateTemplateAsync" StartIcon="@Icons.Material.Filled.Add">قالب جديد</MudButton>
+            @if (selectedTemplate is not null && !selectedTemplate.IsActive)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="ActivateAsync" StartIcon="@Icons.Material.Filled.CheckCircle">تفعيل هذا القالب</MudButton>
+            }
+            @if (selectedTemplate is not null)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" StartIcon="@Icons.Material.Filled.Save">حفظ التصميم</MudButton>
+            }
+            @if (selectedTemplate is not null && templates.Count > 1)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Error" OnClick="DeleteTemplateAsync" StartIcon="@Icons.Material.Filled.Delete">حذف القالب</MudButton>
+            }
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+@if (selectedTemplate is not null)
+{
+    <MudGrid>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">عناصر التذكرة (بالترتيب من الأعلى للأسفل)</MudText>
+
+                @for (var i = 0; i < elements.Count; i++)
+                {
+                    var index = i;
+                    var el = elements[index];
+                    <MudPaper Class="pa-3 mb-2" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius);" @key="el">
+                        <div class="d-flex align-center justify-space-between mb-2">
+                            <MudText Typo="Typo.body1" Style="font-weight:700;">@ElementTypeLabel(el.Type)</MudText>
+                            <div>
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" Disabled="index == 0" OnClick="() => MoveUp(index)" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" Disabled="index == elements.Count - 1" OnClick="() => MoveDown(index)" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="() => RemoveElement(index)" />
+                            </div>
+                        </div>
+
+                        @if (el.Type == ReceiptElementType.StaticText)
+                        {
+                            <MudTextField T="string" @bind-Value="el.Text" Label="النص" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
+                        }
+
+                        @if (el.Type != ReceiptElementType.Divider && el.Type != ReceiptElementType.Spacer)
+                        {
+                            <MudGrid>
+                                <MudItem xs="4">
+                                    <MudSelect T="ReceiptAlign" @bind-Value="el.Align" Label="المحاذاة" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                        <MudSelectItem Value="ReceiptAlign.Start">يمين</MudSelectItem>
+                                        <MudSelectItem Value="ReceiptAlign.Center">وسط</MudSelectItem>
+                                        <MudSelectItem Value="ReceiptAlign.End">يسار</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="4">
+                                    <MudNumericField T="int" @bind-Value="el.FontSize" Label="حجم الخط" Variant="Variant.Outlined" Margin="Margin.Dense" Min="8" Max="80" />
+                                </MudItem>
+                                <MudItem xs="4" Class="d-flex align-center">
+                                    <MudCheckBox T="bool" @bind-Value="el.Bold" Label="عريض" Color="Color.Primary" />
+                                </MudItem>
+                            </MudGrid>
+                        }
+                    </MudPaper>
+                }
+
+                <MudText Typo="Typo.body2" Class="mt-3 mb-2">إضافة عنصر جديد</MudText>
+                <div class="d-flex" style="gap:8px; flex-wrap:wrap;">
+                    @foreach (var type in Enum.GetValues<ReceiptElementType>())
+                    {
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" OnClick="() => AddElement(type)">@ElementTypeLabel(type)</MudButton>
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" md="5">
+            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); position:sticky; top:1rem;">
+                <MudText Typo="Typo.subtitle1" Class="mb-3">معاينة (ببيانات تجريبية)</MudText>
+                <div class="hq-receipt-preview">
+                    @foreach (var el in elements)
+                    {
+                        @RenderPreviewElement(el)
+                    }
+                </div>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private List<ReceiptTemplate> templates = new();
+    private ReceiptTemplate? selectedTemplate;
+    private Guid selectedId;
+    private List<ReceiptElement> elements = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTemplatesAsync();
+        if (templates.Any())
+        {
+            await SelectTemplateAsync((templates.FirstOrDefault(t => t.IsActive) ?? templates[0]).Id);
+        }
+    }
+
+    private async Task LoadTemplatesAsync()
+    {
+        templates = await Db.ReceiptTemplates.OrderBy(t => t.Name).ToListAsync();
+    }
+
+    private Task SelectTemplateAsync(Guid id)
+    {
+        selectedId = id;
+        selectedTemplate = templates.FirstOrDefault(t => t.Id == id);
+        elements = selectedTemplate is null
+            ? new List<ReceiptElement>()
+            : (JsonSerializer.Deserialize<List<ReceiptElement>>(selectedTemplate.ElementsJson) ?? new());
+        return Task.CompletedTask;
+    }
+
+    private async Task CreateTemplateAsync()
+    {
+        var template = new ReceiptTemplate
+        {
+            Id = Guid.NewGuid(),
+            Name = $"قالب جديد {templates.Count + 1}",
+            IsActive = false,
+            ElementsJson = "[]",
+        };
+        Db.ReceiptTemplates.Add(template);
+        await Db.SaveChangesAsync();
+        await LoadTemplatesAsync();
+        await SelectTemplateAsync(template.Id);
+        Snackbar.Add("تم إنشاء القالب", Severity.Success);
+    }
+
+    private async Task SaveAsync()
+    {
+        if (selectedTemplate is null) return;
+        selectedTemplate.ElementsJson = JsonSerializer.Serialize(elements);
+        selectedTemplate.UpdatedAt = DateTime.UtcNow;
+        await Db.SaveChangesAsync();
+        Snackbar.Add("تم حفظ التصميم", Severity.Success);
+    }
+
+    private async Task ActivateAsync()
+    {
+        if (selectedTemplate is null) return;
+
+        var current = await Db.ReceiptTemplates.Where(t => t.IsActive).ToListAsync();
+        foreach (var t in current)
+        {
+            t.IsActive = false;
+        }
+
+        selectedTemplate.IsActive = true;
+        await Db.SaveChangesAsync();
+        await LoadTemplatesAsync();
+        await SelectTemplateAsync(selectedTemplate.Id);
+        Snackbar.Add("تم تفعيل القالب — سيُطبع من الآن فصاعداً", Severity.Success);
+    }
+
+    private async Task DeleteTemplateAsync()
+    {
+        if (selectedTemplate is null || selectedTemplate.IsActive) return;
+        Db.ReceiptTemplates.Remove(selectedTemplate);
+        await Db.SaveChangesAsync();
+        await LoadTemplatesAsync();
+        if (templates.Any())
+        {
+            await SelectTemplateAsync((templates.FirstOrDefault(t => t.IsActive) ?? templates[0]).Id);
+        }
+        else
+        {
+            selectedTemplate = null;
+            elements.Clear();
+        }
+        Snackbar.Add("تم حذف القالب", Severity.Success);
+    }
+
+    private void AddElement(ReceiptElementType type)
+    {
+        elements.Add(new ReceiptElement { Type = type, Text = type == ReceiptElementType.StaticText ? "نص جديد" : null });
+    }
+
+    private void RemoveElement(int index) => elements.RemoveAt(index);
+
+    private void MoveUp(int index)
+    {
+        if (index <= 0) return;
+        (elements[index - 1], elements[index]) = (elements[index], elements[index - 1]);
+    }
+
+    private void MoveDown(int index)
+    {
+        if (index >= elements.Count - 1) return;
+        (elements[index + 1], elements[index]) = (elements[index], elements[index + 1]);
+    }
+
+    private static string ElementTypeLabel(ReceiptElementType type) => type switch
+    {
+        ReceiptElementType.OrgName => "اسم الجهة",
+        ReceiptElementType.ServiceName => "اسم الخدمة",
+        ReceiptElementType.TicketNumber => "رقم التذكرة",
+        ReceiptElementType.DateTimeStamp => "التاريخ والوقت",
+        ReceiptElementType.StaticText => "نص ثابت",
+        ReceiptElementType.Divider => "خط فاصل",
+        ReceiptElementType.Spacer => "مسافة فارغة",
+        _ => type.ToString(),
+    };
+
+    private static string AlignCss(ReceiptAlign align) => align switch
+    {
+        ReceiptAlign.Start => "right",
+        ReceiptAlign.End => "left",
+        _ => "center",
+    };
+
+    private RenderFragment RenderPreviewElement(ReceiptElement el) => builder =>
+    {
+        switch (el.Type)
+        {
+            case ReceiptElementType.Divider:
+                builder.OpenElement(0, "hr");
+                builder.AddAttribute(1, "style", "border:none; border-top:1px dashed #000; margin:6px 0;");
+                builder.CloseElement();
+                return;
+            case ReceiptElementType.Spacer:
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "style", "height:10px;");
+                builder.CloseElement();
+                return;
+        }
+
+        var text = el.Type switch
+        {
+            ReceiptElementType.OrgName => "اسم الجهة التجريبي",
+            ReceiptElementType.ServiceName => "الباطنية",
+            ReceiptElementType.TicketNumber => "A-014",
+            ReceiptElementType.DateTimeStamp => DateTime.Now.ToString("yyyy-MM-dd HH:mm"),
+            ReceiptElementType.StaticText => el.Text ?? string.Empty,
+            _ => string.Empty,
+        };
+
+        var style = $"text-align:{AlignCss(el.Align)}; font-size:{el.FontSize}px; font-weight:{(el.Bold ? 700 : 400)}; margin:2px 0;";
+
+        builder.OpenElement(0, "div");
+        builder.AddAttribute(1, "style", style);
+        builder.AddContent(2, text);
+        builder.CloseElement();
+    };
+}

@@ -18,6 +18,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<TicketStatusHistory> TicketStatusHistories => Set<TicketStatusHistory>();
     public DbSet<DailySequence> DailySequences => Set<DailySequence>();
     public DbSet<OrganizationSettings> OrganizationSettings => Set<OrganizationSettings>();
+    public DbSet<ReceiptTemplate> ReceiptTemplates => Set<ReceiptTemplate>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -94,6 +95,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         {
             b.Property(s => s.OrgNameAr).HasMaxLength(200).IsRequired();
             b.Property(s => s.TickerText).HasMaxLength(500);
+        });
+
+        builder.Entity<ReceiptTemplate>(b =>
+        {
+            b.Property(t => t.Name).HasMaxLength(150).IsRequired();
+            b.Property(t => t.ElementsJson).HasColumnType("text").IsRequired();
         });
     }
 }
