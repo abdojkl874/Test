@@ -1,3 +1,5 @@
+using HospitalQueue.Domain.Enums;
+
 namespace HospitalQueue.Application.DTOs;
 
 public record ServiceStatsDto(
@@ -27,3 +29,13 @@ public record DashboardSummaryDto(
     IReadOnlyList<CounterStatsDto> CounterStats,
     int WaitingNow,
     int InServiceNow);
+
+/// <summary>One row of the admin "سجل التذاكر" ticket log table.</summary>
+public record TicketLogRowDto(
+    string Number,
+    string ServiceName,
+    DateOnly Date,
+    TicketStatus Status,
+    string? ServedByName,
+    double? WaitMinutes,
+    double? ServiceMinutes);

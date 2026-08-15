@@ -17,11 +17,18 @@ namespace HospitalQueue.Web.Services;
 public class QueueEventBus : IQueueNotifier
 {
     public event Func<TicketCalledEvent, Task>? TicketCalled;
+    public event Func<TicketStatusChangedEvent, Task>? TicketStatusChanged;
     public event Func<Guid, Task>? QueueChanged;
 
     public Task TicketCalledAsync(TicketCalledEvent evt, CancellationToken ct = default)
     {
         Publish(TicketCalled, evt);
+        return Task.CompletedTask;
+    }
+
+    public Task TicketStatusChangedAsync(TicketStatusChangedEvent evt, CancellationToken ct = default)
+    {
+        Publish(TicketStatusChanged, evt);
         return Task.CompletedTask;
     }
 

@@ -82,6 +82,39 @@ public class ReportService : IReportService
         return new DashboardSummaryDto(serviceStats, employeeStats, counterStats, waitingNow, inServiceNow);
     }
 
+    public async Task<IReadOnlyList<TicketLogRowDto>> GetTicketLogAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
+    {
+        var rows = await _db.Tickets
+            .Where(t => t.QueueDate >= from && t.QueueDate <= to)
+            .OrderByDescending(t => t.CreatedAt)
+            .Select(t => new
+            {
+                t.Number,
+                ServiceName = t.Service.NameAr,
+                t.QueueDate,
+                t.Status,
+                EmployeeName = t.Employee != null ? t.Employee.FullName : null,
+                t.CreatedAt,
+                t.CalledAt,
+                t.ServiceStartedAt,
+                t.ServiceEndedAt,
+            })
+            .ToListAsync(ct);
+
+        return rows
+            .Select(r => new TicketLogRowDto(
+                r.Number,
+                r.ServiceName,
+                r.QueueDate,
+                r.Status,
+                r.EmployeeName,
+                r.CalledAt.HasValue ? Math.Round((r.CalledAt.Value - r.CreatedAt).TotalMinutes, 1) : null,
+                r.ServiceEndedAt.HasValue
+                    ? Math.Round((r.ServiceEndedAt.Value - (r.ServiceStartedAt ?? r.CalledAt ?? r.CreatedAt)).TotalMinutes, 1)
+                    : null))
+            .ToList();
+    }
+
     private static double AverageMinutes(IEnumerable<TimeSpan> spans)
     {
         var list = spans.ToList();

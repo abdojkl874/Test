@@ -505,6 +505,26 @@ html, body {
     to   { box-shadow: 0 0 0 3px rgba(224,121,63,.75); }
 }
 
+.hq-display-now-status {
+    margin-top: .8rem;
+    padding: .3rem 1rem;
+    border-radius: 999px;
+    font-size: 1rem;
+    font-weight: 700;
+}
+.hq-recent-status {
+    padding: .25rem .8rem;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.hq-status-called { background: rgba(44,123,166,.25); color: #7FC3E8; }
+.hq-status-inservice { background: rgba(63,191,127,.25); color: #7FE0AA; }
+.hq-status-done { background: rgba(255,255,255,.12); color: #B9CBDA; }
+.hq-status-skipped { background: rgba(224,121,63,.25); color: #F0AE84; }
+.hq-status-transferred { background: rgba(151,111,196,.25); color: #C9AEE8; }
+
 .hq-ticker {
     height: 3.2rem;
     border-radius: 14px;
@@ -589,9 +609,6 @@ html, body {
 }
 .hq-users-name-field {
     min-width: 160px;
-}
-.hq-users-code-field {
-    min-width: 110px;
 }
 .hq-users-role-select {
     min-width: 160px;

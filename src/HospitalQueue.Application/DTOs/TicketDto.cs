@@ -22,4 +22,15 @@ public record TicketCalledEvent(
     Guid ServiceId,
     Guid CounterId,
     DateTime CalledAt,
-    bool IsRecall);
+    bool IsRecall,
+    TicketStatus Status);
+
+/// <summary>
+/// Broadcast whenever a previously-called ticket's status moves on (service
+/// started/finished, patient skipped, transferred) so the display board can
+/// update that ticket's row without waiting for another call/recall.
+/// </summary>
+public record TicketStatusChangedEvent(
+    string Number,
+    Guid ServiceId,
+    TicketStatus Status);

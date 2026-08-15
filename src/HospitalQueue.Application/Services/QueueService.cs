@@ -118,7 +118,7 @@ public class QueueService : IQueueService
         await _db.SaveChangesAsync(ct);
 
         var evt = new TicketCalledEvent(next.Number, session.Service.NameAr, session.Counter.Name,
-            session.ServiceId, session.CounterId, next.CalledAt.Value, IsRecall: false);
+            session.ServiceId, session.CounterId, next.CalledAt.Value, IsRecall: false, Status: next.Status);
         await _notifier.TicketCalledAsync(evt, ct);
         await _notifier.QueueChangedAsync(session.ServiceId, ct);
 
@@ -150,7 +150,7 @@ public class QueueService : IQueueService
         await _db.SaveChangesAsync(ct);
 
         var evt = new TicketCalledEvent(ticket.Number, ticket.Service.NameAr, ticket.Counter!.Name,
-            ticket.ServiceId, ticket.CounterId.Value, ticket.CalledAt.Value, IsRecall: true);
+            ticket.ServiceId, ticket.CounterId.Value, ticket.CalledAt.Value, IsRecall: true, Status: ticket.Status);
         await _notifier.TicketCalledAsync(evt, ct);
 
         return ToDto(ticket, ticket.Service.NameAr, ticket.Counter.Name);
@@ -178,6 +178,7 @@ public class QueueService : IQueueService
         });
 
         await _db.SaveChangesAsync(ct);
+        await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
         return ToDto(ticket, ticket.Service.NameAr, ticket.Counter?.Name);
     }
 
@@ -206,6 +207,7 @@ public class QueueService : IQueueService
         });
 
         await _db.SaveChangesAsync(ct);
+        await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
         await _notifier.QueueChangedAsync(ticket.ServiceId, ct);
 
         return ToDto(ticket, ticket.Service.NameAr, ticket.Counter?.Name);
@@ -234,6 +236,7 @@ public class QueueService : IQueueService
         });
 
         await _db.SaveChangesAsync(ct);
+        await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
         await _notifier.QueueChangedAsync(ticket.ServiceId, ct);
 
         return ToDto(ticket, ticket.Service.NameAr, ticket.Counter?.Name);
@@ -276,6 +279,7 @@ public class QueueService : IQueueService
         var newTicket = await CreateTicketCoreAsync(newService, transferredFromTicketId: ticket.Id, ct);
 
         await _db.SaveChangesAsync(ct);
+        await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
         await _notifier.QueueChangedAsync(ticket.ServiceId, ct);
         await _notifier.QueueChangedAsync(newServiceId, ct);
 
@@ -298,7 +302,7 @@ public class QueueService : IQueueService
             .Take(take)
             .Select(t => new TicketCalledEvent(
                 t.Number, t.Service.NameAr, t.Counter!.Name, t.ServiceId, t.CounterId!.Value,
-                t.CalledAt!.Value, t.RecallCount > 0))
+                t.CalledAt!.Value, t.RecallCount > 0, t.Status))
             .ToListAsync(ct);
     }
 

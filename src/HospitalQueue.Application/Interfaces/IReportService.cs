@@ -5,4 +5,6 @@ namespace HospitalQueue.Application.Interfaces;
 public interface IReportService
 {
     Task<DashboardSummaryDto> GetDashboardAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
+
+    Task<IReadOnlyList<TicketLogRowDto>> GetTicketLogAsync(DateOnly from, DateOnly to, CancellationToken ct = default);
 }

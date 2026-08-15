@@ -80,7 +80,7 @@
         </MudItem>
     </MudGrid>
 
-    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+    <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
         <MudText Typo="Typo.subtitle1" Class="mb-2">تفاصيل الخدمات</MudText>
         <MudTable Items="summary.ServiceStats" Dense="true" Hover="true">
             <HeaderContent>
@@ -101,12 +101,42 @@
             </RowTemplate>
         </MudTable>
     </MudPaper>
+
+    <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
+        <MudText Typo="Typo.subtitle1" Class="mb-2">سجل التذاكر</MudText>
+        <MudTable Items="ticketLog" Dense="true" Hover="true" Bordered="true" Striped="true">
+            <HeaderContent>
+                <MudTh>رقم الدور</MudTh>
+                <MudTh>الخدمة</MudTh>
+                <MudTh>التاريخ</MudTh>
+                <MudTh>الحالة</MudTh>
+                <MudTh>من قام بخدمته</MudTh>
+                <MudTh>زمن الانتظار (د)</MudTh>
+                <MudTh>زمن الخدمة (د)</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="رقم الدور">@context.Number</MudTd>
+                <MudTd DataLabel="الخدمة">@context.ServiceName</MudTd>
+                <MudTd DataLabel="التاريخ">@context.Date.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="الحالة">
+                    <MudChip T="string" Size="Size.Small" Class="@TicketStatusChipClass(context.Status)">@TicketStatusLabel(context.Status)</MudChip>
+                </MudTd>
+                <MudTd DataLabel="من قام بخدمته">@(context.ServedByName ?? "-")</MudTd>
+                <MudTd DataLabel="زمن الانتظار">@(context.WaitMinutes?.ToString("0.0") ?? "-")</MudTd>
+                <MudTd DataLabel="زمن الخدمة">@(context.ServiceMinutes?.ToString("0.0") ?? "-")</MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager RowsPerPageString="صفوف لكل صفحة" InfoFormat="{first_item}-{last_item} من {all_items}" />
+            </PagerContent>
+        </MudTable>
+    </MudPaper>
 }
 
 @code {
     private DateTime? fromDate = DateTime.Today;
     private DateTime? toDate = DateTime.Today;
     private DashboardSummaryDto? summary;
+    private List<TicketLogRowDto> ticketLog = new();
 
     private string[] serviceLabels = Array.Empty<string>();
     private string[] employeeLabels = Array.Empty<string>();
@@ -124,6 +154,7 @@
         var from = DateOnly.FromDateTime(fromDate ?? DateTime.Today);
         var to = DateOnly.FromDateTime(toDate ?? DateTime.Today);
         summary = await ReportService.GetDashboardAsync(from, to);
+        ticketLog = (await ReportService.GetTicketLogAsync(from, to)).ToList();
 
         serviceLabels = summary.ServiceStats.Select(s => s.ServiceName).ToArray();
         ticketCountSeries = new List<ChartSeries>
@@ -151,4 +182,26 @@
             new() { Name = "عدد التذاكر", Data = summary.CounterStats.Select(c => (double)c.TicketsHandled).ToArray() },
         };
     }
+
+    private static string TicketStatusLabel(TicketStatus status) => status switch
+    {
+        TicketStatus.Waiting => "بالانتظار",
+        TicketStatus.Called => "تم النداء",
+        TicketStatus.InService => "قيد الخدمة",
+        TicketStatus.Done => "مكتملة",
+        TicketStatus.Skipped => "لم يحضر",
+        TicketStatus.Transferred => "تم التحويل",
+        TicketStatus.Cancelled => "ملغاة",
+        _ => status.ToString(),
+    };
+
+    private static string TicketStatusChipClass(TicketStatus status) => status switch
+    {
+        TicketStatus.Waiting => "hq-chip-waiting",
+        TicketStatus.Called or TicketStatus.InService => "hq-chip-inservice",
+        TicketStatus.Done => "hq-chip-done",
+        TicketStatus.Skipped => "hq-chip-skipped",
+        TicketStatus.Transferred => "hq-chip-transferred",
+        _ => "hq-chip-cancelled",
+    };
 }

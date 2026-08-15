@@ -56,6 +56,7 @@ public static class SeedData
             """
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "KioskPasswordHash" text NULL;
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "DisplayPasswordHash" text NULL;
+            ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "EmployeeCode";
             """);
 
         foreach (var roleName in AppRoles.All)

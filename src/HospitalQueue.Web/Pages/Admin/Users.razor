@@ -21,9 +21,6 @@
             <MudTextField @bind-Value="newFullName" Label="الاسم الكامل" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
-            <MudTextField @bind-Value="newEmployeeCode" Label="رقم الموظف (اختياري)" Variant="Variant.Outlined" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
             <MudTextField @bind-Value="newPassword" Label="كلمة المرور المبدئية" InputType="InputType.Password" Variant="Variant.Outlined" />
         </MudItem>
         <MudItem xs="12" sm="6" md="3">
@@ -46,7 +43,6 @@
         <HeaderContent>
             <MudTh>اسم المستخدم</MudTh>
             <MudTh>الاسم الكامل</MudTh>
-            <MudTh>رقم الموظف</MudTh>
             <MudTh>الدور</MudTh>
             <MudTh>الحالة</MudTh>
             <MudTh></MudTh>
@@ -55,9 +51,6 @@
             <MudTd DataLabel="اسم المستخدم">@context.User.UserName</MudTd>
             <MudTd DataLabel="الاسم الكامل">
                 <MudTextField T="string" @bind-Value="context.EditFullName" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-name-field" />
-            </MudTd>
-            <MudTd DataLabel="رقم الموظف">
-                <MudTextField T="string" @bind-Value="context.EditEmployeeCode" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-code-field" />
             </MudTd>
             <MudTd DataLabel="الدور">
                 <MudSelect T="string" Value="@(context.Roles.FirstOrDefault() ?? string.Empty)" ValueChanged="@(v => SetUserRoleAsync(context, v))"
@@ -93,13 +86,11 @@
         public List<string> Roles { get; set; } = new();
         public string? NewPassword { get; set; }
         public string EditFullName { get; set; } = string.Empty;
-        public string EditEmployeeCode { get; set; } = string.Empty;
     }
 
     private List<UserRow> userRows = new();
     private string newUsername = string.Empty;
     private string newFullName = string.Empty;
-    private string newEmployeeCode = string.Empty;
     private string newPassword = string.Empty;
     private string newRole = string.Empty;
 
@@ -116,7 +107,6 @@
                 User = user,
                 Roles = roles.ToList(),
                 EditFullName = user.FullName,
-                EditEmployeeCode = user.EmployeeCode ?? string.Empty,
             });
         }
     }
@@ -133,7 +123,6 @@
         {
             UserName = newUsername.Trim(),
             FullName = newFullName.Trim(),
-            EmployeeCode = string.IsNullOrWhiteSpace(newEmployeeCode) ? null : newEmployeeCode.Trim(),
             IsActive = true,
             EmailConfirmed = true,
         };
@@ -153,7 +142,6 @@
         Snackbar.Add("تم إنشاء المستخدم بنجاح", Severity.Success);
         newUsername = string.Empty;
         newFullName = string.Empty;
-        newEmployeeCode = string.Empty;
         newPassword = string.Empty;
         newRole = string.Empty;
         await LoadAsync();
@@ -185,7 +173,6 @@
         }
 
         row.User.FullName = row.EditFullName.Trim();
-        row.User.EmployeeCode = string.IsNullOrWhiteSpace(row.EditEmployeeCode) ? null : row.EditEmployeeCode.Trim();
         var result = await UserManager.UpdateAsync(row.User);
         if (!result.Succeeded)
         {

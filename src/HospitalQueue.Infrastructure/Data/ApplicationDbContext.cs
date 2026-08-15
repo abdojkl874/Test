@@ -28,7 +28,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
         builder.Entity<ApplicationUser>(b =>
         {
             b.Property(u => u.FullName).HasMaxLength(200).IsRequired();
-            b.Property(u => u.EmployeeCode).HasMaxLength(50);
         });
 
         builder.Entity<Service>(b =>

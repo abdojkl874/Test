@@ -34,6 +34,7 @@
                     <div class="hq-display-now-number">@latest.Number</div>
                     <div class="hq-display-now-window">@latest.CounterName</div>
                     <div class="hq-display-now-service">@latest.ServiceName</div>
+                    <div class="hq-display-now-status hq-status-@StatusClass(latest.Status)">@StatusLabel(latest.Status)</div>
                 }
             </div>
 
@@ -52,6 +53,7 @@
                                 <div class="hq-recent-window">@evt.CounterName</div>
                                 <div class="hq-recent-service">@evt.ServiceName</div>
                             </div>
+                            <div class="hq-recent-status hq-status-@StatusClass(evt.Status)">@StatusLabel(evt.Status)</div>
                             <div style="color:#9FC3DE; font-variant-numeric: tabular-nums;">@evt.CalledAt.ToString("HH:mm")</div>
                         </div>
                     }
@@ -97,6 +99,7 @@
         latest = recent.FirstOrDefault();
 
         Bus.TicketCalled += OnTicketCalledAsync;
+        Bus.TicketStatusChanged += OnTicketStatusChangedAsync;
 
         clockTimer = new System.Threading.Timer(_ =>
         {
@@ -131,9 +134,51 @@
         return Task.CompletedTask;
     }
 
+    private Task OnTicketStatusChangedAsync(TicketStatusChangedEvent evt)
+    {
+        _ = InvokeAsync(() =>
+        {
+            var index = recent.FindIndex(r => r.Number == evt.Number && r.ServiceId == evt.ServiceId);
+            if (index < 0)
+            {
+                return;
+            }
+
+            recent[index] = recent[index] with { Status = evt.Status };
+            if (latest?.Number == evt.Number && latest.ServiceId == evt.ServiceId)
+            {
+                latest = recent[index];
+            }
+
+            StateHasChanged();
+        });
+
+        return Task.CompletedTask;
+    }
+
+    private static string StatusLabel(TicketStatus status) => status switch
+    {
+        TicketStatus.Called => "تم النداء",
+        TicketStatus.InService => "قيد الخدمة",
+        TicketStatus.Done => "انتهت الخدمة",
+        TicketStatus.Skipped => "لم يحضر",
+        TicketStatus.Transferred => "تم التحويل",
+        _ => status.ToString(),
+    };
+
+    private static string StatusClass(TicketStatus status) => status switch
+    {
+        TicketStatus.InService => "inservice",
+        TicketStatus.Done => "done",
+        TicketStatus.Skipped => "skipped",
+        TicketStatus.Transferred => "transferred",
+        _ => "called",
+    };
+
     public void Dispose()
     {
         Bus.TicketCalled -= OnTicketCalledAsync;
+        Bus.TicketStatusChanged -= OnTicketStatusChangedAsync;
         clockTimer?.Dispose();
     }
 }

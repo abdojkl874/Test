@@ -67,7 +67,30 @@
                             <MudTextField T="string" @bind-Value="el.Text" Label="النص" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-2" />
                         }
 
-                        @if (el.Type != ReceiptElementType.Divider && el.Type != ReceiptElementType.Spacer)
+                        @if (el.Type == ReceiptElementType.Logo)
+                        {
+                            <div class="d-flex align-center mb-2" style="gap:12px;">
+                                @if (!string.IsNullOrEmpty(el.ImageDataUrl))
+                                {
+                                    <img src="@el.ImageDataUrl" alt="شعار" style="max-height:48px; max-width:96px; border:1px solid var(--hq-divider); border-radius:4px; background:#fff;" />
+                                }
+                                <InputFile OnChange="e => OnLogoSelectedAsync(e, el)" accept="image/*" />
+                            </div>
+                            <MudGrid>
+                                <MudItem xs="6">
+                                    <MudSelect T="ReceiptAlign" @bind-Value="el.Align" Label="المحاذاة" Variant="Variant.Outlined" Margin="Margin.Dense">
+                                        <MudSelectItem Value="ReceiptAlign.Start">يمين</MudSelectItem>
+                                        <MudSelectItem Value="ReceiptAlign.Center">وسط</MudSelectItem>
+                                        <MudSelectItem Value="ReceiptAlign.End">يسار</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudNumericField T="int" @bind-Value="el.ImageWidthMm" Label="العرض (مم)" Variant="Variant.Outlined" Margin="Margin.Dense" Min="10" Max="76" />
+                                </MudItem>
+                            </MudGrid>
+                        }
+
+                        @if (el.Type != ReceiptElementType.Divider && el.Type != ReceiptElementType.Spacer && el.Type != ReceiptElementType.Logo)
                         {
                             <MudGrid>
                                 <MudItem xs="4">
@@ -207,6 +230,27 @@
         elements.Add(new ReceiptElement { Type = type, Text = type == ReceiptElementType.StaticText ? "نص جديد" : null });
     }
 
+    private async Task OnLogoSelectedAsync(InputFileChangeEventArgs e, ReceiptElement el)
+    {
+        var file = e.File;
+        if (file is null)
+        {
+            return;
+        }
+
+        const long maxSize = 2 * 1024 * 1024;
+        if (file.Size > maxSize)
+        {
+            Snackbar.Add("حجم الصورة كبير جداً (الحد الأقصى 2 ميغابايت)", Severity.Warning);
+            return;
+        }
+
+        using var stream = file.OpenReadStream(maxSize);
+        using var ms = new MemoryStream();
+        await stream.CopyToAsync(ms);
+        el.ImageDataUrl = $"data:{file.ContentType};base64,{Convert.ToBase64String(ms.ToArray())}";
+    }
+
     private void RemoveElement(int index) => elements.RemoveAt(index);
 
     private void MoveUp(int index)
@@ -230,6 +274,7 @@
         ReceiptElementType.StaticText => "نص ثابت",
         ReceiptElementType.Divider => "خط فاصل",
         ReceiptElementType.Spacer => "مسافة فارغة",
+        ReceiptElementType.Logo => "شعار (لوغو)",
         _ => type.ToString(),
     };
 
@@ -252,6 +297,23 @@
             case ReceiptElementType.Spacer:
                 builder.OpenElement(0, "div");
                 builder.AddAttribute(1, "style", "height:10px;");
+                builder.CloseElement();
+                return;
+            case ReceiptElementType.Logo:
+                builder.OpenElement(0, "div");
+                builder.AddAttribute(1, "style", $"text-align:{AlignCss(el.Align)}; margin:2px 0;");
+                if (!string.IsNullOrEmpty(el.ImageDataUrl))
+                {
+                    builder.OpenElement(2, "img");
+                    builder.AddAttribute(3, "src", el.ImageDataUrl);
+                    builder.AddAttribute(4, "alt", "شعار");
+                    builder.AddAttribute(5, "style", $"width:{el.ImageWidthMm}mm; max-width:100%;");
+                    builder.CloseElement();
+                }
+                else
+                {
+                    builder.AddContent(6, "(لم يتم رفع شعار بعد)");
+                }
                 builder.CloseElement();
                 return;
         }

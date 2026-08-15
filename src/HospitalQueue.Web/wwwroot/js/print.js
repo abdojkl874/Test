@@ -87,6 +87,13 @@
                 html += '<div class="hq-spacer"></div>';
                 return;
             }
+            if (el.Type === 'Logo') {
+                if (el.ImageDataUrl) {
+                    var widthMm = el.ImageWidthMm || 30;
+                    html += '<div class="hq-el ' + alignClass(el.Align) + '"><img src="' + el.ImageDataUrl + '" style="width:' + widthMm + 'mm; max-width:100%;" /></div>';
+                }
+                return;
+            }
             var text = escapeHtml(resolveText(el, fields));
             var style = 'font-size:' + (el.FontSize || 12) + 'pt; font-weight:' + (el.Bold ? 800 : 400) + ';';
             html += '<div class="hq-el ' + alignClass(el.Align) + '" style="' + style + '">' + text + '</div>';

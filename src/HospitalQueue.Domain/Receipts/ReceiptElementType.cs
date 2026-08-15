@@ -26,4 +26,7 @@ public enum ReceiptElementType
 
     /// <summary>Empty vertical space.</summary>
     Spacer,
+
+    /// <summary>An uploaded logo image, stored as a data URI on the element itself.</summary>
+    Logo,
 }

@@ -23,4 +23,10 @@ public class ReceiptElement
     public ReceiptAlign Align { get; set; } = ReceiptAlign.Center;
     public int FontSize { get; set; } = 12;
     public bool Bold { get; set; }
+
+    /// <summary>Logo image as a data: URI (e.g. "data:image/png;base64,..."). Only used when Type is Logo.</summary>
+    public string? ImageDataUrl { get; set; }
+
+    /// <summary>Logo width in millimeters on the printed 80mm roll. Only used when Type is Logo.</summary>
+    public int ImageWidthMm { get; set; } = 30;
 }
