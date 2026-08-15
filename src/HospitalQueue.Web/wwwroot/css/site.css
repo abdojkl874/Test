@@ -344,28 +344,64 @@ html, body {
 
 /* ---------- Employee call screen ---------- */
 .hq-call-shell {
-    max-width: 640px;
+    max-width: 680px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
-.hq-window-card {
+
+/* Session bar: counter + clinic pickers, with the waiting count pinned to
+   the side so the employee can see the queue depth without looking away. */
+.hq-session-bar {
     background: linear-gradient(135deg, var(--hq-primary), var(--hq-primary-dark));
     color: #fff;
     border-radius: var(--hq-radius-lg);
-    padding: 1rem 1.4rem;
+    padding: 1rem 1.2rem;
     box-shadow: var(--hq-shadow-md);
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    flex-wrap: wrap;
 }
-.hq-window-card-title {
-    color: #fff;
-    font-size: 1.25rem;
-    font-weight: 700;
+.hq-session-bar-fields {
+    display: flex;
+    gap: .8rem;
+    flex: 1 1 320px;
+    min-width: 0;
 }
-.hq-window-card-sub {
+.hq-session-bar-fields > * {
+    flex: 1 1 0;
+    min-width: 0;
+}
+.hq-session-hint {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
     color: rgba(255, 255, 255, .85);
-    font-size: .92rem;
-    margin-top: .3rem;
+    font-size: .9rem;
 }
-/* The counter/clinic pickers sit on the card's dark gradient, so their
-   MudBlazor chrome has to be re-tinted for light-on-dark. */
+.hq-session-waiting {
+    text-align: center;
+    padding: .3rem 1rem;
+    border-radius: var(--hq-radius);
+    background: rgba(255, 255, 255, .12);
+    min-width: 84px;
+}
+.hq-session-waiting-count {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 800;
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.hq-session-waiting-label {
+    font-size: .78rem;
+    color: rgba(255, 255, 255, .8);
+}
+
+/* The pickers sit on the bar's dark gradient, so their MudBlazor chrome
+   has to be re-tinted for light-on-dark. */
 .hq-session-select .mud-input-control .mud-input,
 .hq-session-select .mud-input-control .mud-input-label,
 .hq-session-select .mud-select-input .mud-input-slot {
@@ -375,58 +411,108 @@ html, body {
     border-color: rgba(255, 255, 255, .45) !important;
 }
 .hq-session-select .mud-input-control:hover .mud-input-outlined-border {
-    border-color: rgba(255, 255, 255, .75) !important;
+    border-color: rgba(255, 255, 255, .8) !important;
 }
 .hq-session-select .mud-input-adornment .mud-icon-root,
 .hq-session-select .mud-select-input .mud-input-adornment-end {
     color: rgba(255, 255, 255, .85) !important;
 }
-.hq-current-ticket {
-    font-size: 3rem;
-    font-weight: 800;
-    text-align: center;
-    color: var(--hq-primary);
-    margin: .4rem 0;
-    font-variant-numeric: tabular-nums;
-    line-height: 1.1;
+
+.hq-call-panel {
+    border: 1px solid var(--hq-divider);
+    border-radius: var(--hq-radius-lg) !important;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
 }
-.hq-current-ticket-empty {
-    color: var(--hq-divider);
-}
-.hq-service-timer {
-    display: inline-flex;
+
+/* Fixed-height stage so the buttons below never move when a ticket is
+   called, served, or cleared. */
+.hq-ticket-stage {
+    display: flex;
+    flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: .5rem;
-    margin-top: .7rem;
-    padding: .4rem 1.1rem;
-    border-radius: 999px;
-    background: rgba(44,123,166,.10);
-    border: 1px solid rgba(44,123,166,.30);
+    min-height: 128px;
+    border-radius: var(--hq-radius);
+    background: var(--hq-bg);
+    border: 1px dashed var(--hq-divider);
+    padding: .8rem;
 }
-/* Kept in the layout while idle so starting a service doesn't shift the
-   buttons underneath it — just greyed out until the clock is running. */
-.hq-service-timer.is-idle {
-    opacity: .45;
-}
-.hq-service-timer-icon {
-    color: var(--hq-info);
-}
-.hq-service-timer-value {
-    font-size: 1.6rem;
+.hq-current-ticket {
+    font-size: 3.2rem;
     font-weight: 800;
-    color: var(--hq-info);
+    color: var(--hq-primary);
     font-variant-numeric: tabular-nums;
     line-height: 1;
 }
-.hq-service-timer-label {
+.hq-ticket-meta {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.hq-ticket-empty-icon {
+    font-size: 2.6rem !important;
+    color: var(--hq-divider);
+}
+.hq-ticket-empty-text {
     color: var(--hq-muted);
-    font-size: .9rem;
+    font-size: .95rem;
+}
+
+.hq-service-timer {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .7rem;
+    border-radius: 999px;
+    background: rgba(44,123,166,.12);
+    border: 1px solid rgba(44,123,166,.30);
+    color: var(--hq-info);
+}
+/* Kept in the layout while idle so starting a service doesn't shift the
+   row — just greyed out until the clock is running. */
+.hq-service-timer.is-idle {
+    opacity: .45;
+}
+.hq-service-timer-value {
+    font-size: 1.1rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.hq-action-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: .7rem;
+}
+@media (max-width: 480px) {
+    .hq-action-grid { grid-template-columns: 1fr; }
+    .hq-session-bar-fields { flex-basis: 100%; }
 }
 .hq-action-btn {
-    min-height: 62px !important;
-    font-size: 1.05rem !important;
+    min-height: 58px !important;
+    font-size: 1rem !important;
     font-weight: 700 !important;
     border-radius: var(--hq-radius) !important;
+}
+.hq-action-primary {
+    min-height: 66px !important;
+    font-size: 1.1rem !important;
+}
+.hq-transfer-panel {
+    border: 1px solid var(--hq-divider);
+    border-radius: var(--hq-radius);
+    padding: .9rem;
+    background: var(--hq-bg);
+}
+.hq-notes-field {
+    margin-top: .2rem;
 }
 
 /* ---------- Display board ---------- */
