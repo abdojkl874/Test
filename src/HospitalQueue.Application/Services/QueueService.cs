@@ -90,8 +90,14 @@ public class QueueService : IQueueService
             .FirstOrDefaultAsync(s => s.Id == counterSessionId && s.EndedAt == null, ct)
             ?? throw new QueueOperationException("لا توجد جلسة عمل نشطة على هذا الشباك");
 
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        await ExpireStaleWaitingTicketsAsync(session.ServiceId, today, ct);
+
+        // Scoped to today deliberately: ticket numbering restarts every day
+        // (see NextSequenceNumberAsync), so serving a leftover from an earlier
+        // day would announce a number that belongs to today's sequence too.
         var next = await _db.Tickets
-            .Where(t => t.ServiceId == session.ServiceId && t.Status == TicketStatus.Waiting)
+            .Where(t => t.ServiceId == session.ServiceId && t.Status == TicketStatus.Waiting && t.QueueDate == today)
             .OrderBy(t => t.CreatedAt)
             .FirstOrDefaultAsync(ct);
 
@@ -304,6 +310,41 @@ public class QueueService : IQueueService
                 t.Number, t.Service.NameAr, t.Counter!.Name, t.ServiceId, t.CounterId!.Value,
                 t.CalledAt!.Value, t.RecallCount > 0, t.Status))
             .ToListAsync(ct);
+    }
+
+    /// <summary>
+    /// Closes off tickets left waiting from an earlier day. Without this they
+    /// stay Waiting forever: excluded from today's queue but still counted as
+    /// "waiting now" on the dashboard.
+    /// </summary>
+    private async Task ExpireStaleWaitingTicketsAsync(Guid serviceId, DateOnly today, CancellationToken ct)
+    {
+        var stale = await _db.Tickets
+            .Where(t => t.ServiceId == serviceId && t.Status == TicketStatus.Waiting && t.QueueDate < today)
+            .ToListAsync(ct);
+
+        if (stale.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        foreach (var ticket in stale)
+        {
+            ticket.Status = TicketStatus.Cancelled;
+            ticket.ServiceEndedAt = now;
+
+            _db.TicketStatusHistories.Add(new TicketStatusHistory
+            {
+                Id = Guid.NewGuid(),
+                TicketId = ticket.Id,
+                Status = TicketStatus.Cancelled,
+                OccurredAt = now,
+                Note = "إلغاء تلقائي — تذكرة من يوم سابق",
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
     }
 
     private async Task<Ticket> CreateTicketCoreAsync(Service service, Guid? transferredFromTicketId, CancellationToken ct)

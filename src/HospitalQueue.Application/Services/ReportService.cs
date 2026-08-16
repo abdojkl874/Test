@@ -76,8 +76,11 @@ public class ReportService : IReportService
             .OrderByDescending(c => c.TicketsHandled)
             .ToList();
 
-        var waitingNow = await _db.Tickets.CountAsync(t => t.Status == TicketStatus.Waiting, ct);
-        var inServiceNow = await _db.Tickets.CountAsync(t => t.Status == TicketStatus.InService, ct);
+        // "Now" means today: a ticket left waiting or in-service when a clinic
+        // closed would otherwise keep inflating these tiles indefinitely.
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        var waitingNow = await _db.Tickets.CountAsync(t => t.Status == TicketStatus.Waiting && t.QueueDate == today, ct);
+        var inServiceNow = await _db.Tickets.CountAsync(t => t.Status == TicketStatus.InService && t.QueueDate == today, ct);
 
         return new DashboardSummaryDto(serviceStats, employeeStats, counterStats, waitingNow, inServiceNow);
     }

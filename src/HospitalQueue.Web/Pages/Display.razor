@@ -82,6 +82,7 @@
     private string? tickerText;
     private string? displayPasswordHash;
     private DateTime clock = DateTime.Now;
+    private DateOnly boardDate = DateOnly.FromDateTime(DateTime.Now);
     private readonly System.Globalization.CultureInfo arabicCulture = new("ar-SA");
     private System.Threading.Timer? clockTimer;
 
@@ -105,11 +106,28 @@
         Bus.TicketCalled += OnTicketCalledAsync;
         Bus.TicketStatusChanged += OnTicketStatusChangedAsync;
 
-        clockTimer = new System.Threading.Timer(_ =>
+        clockTimer = new System.Threading.Timer(_ => InvokeAsync(Tick), null,
+            TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    // Runs on the circuit's sync context so it can touch `recent`/`latest`
+    // without racing the call and status-change handlers.
+    private void Tick()
+    {
+        clock = DateTime.Now;
+
+        // The board runs unattended for weeks, so it has to notice the date
+        // rolling over itself — otherwise it keeps yesterday's calls up while
+        // ticket numbering has already restarted at 1 for the new day.
+        var currentDate = DateOnly.FromDateTime(clock);
+        if (currentDate != boardDate)
         {
-            clock = DateTime.Now;
-            InvokeAsync(StateHasChanged);
-        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            boardDate = currentDate;
+            recent.Clear();
+            latest = null;
+        }
+
+        StateHasChanged();
     }
 
     private Task OnTicketCalledAsync(TicketCalledEvent evt)
