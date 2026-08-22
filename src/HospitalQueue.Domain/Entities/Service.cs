@@ -14,6 +14,5 @@ public class Service
     public bool IsActive { get; set; } = true;
     public int DisplayOrder { get; set; }
 
-    public ICollection<CounterService> CounterServices { get; set; } = new List<CounterService>();
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
 }

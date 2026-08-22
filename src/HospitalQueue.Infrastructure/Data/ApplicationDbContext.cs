@@ -11,9 +11,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     }
 
     public DbSet<Service> Services => Set<Service>();
-    public DbSet<Counter> Counters => Set<Counter>();
-    public DbSet<CounterService> CounterServices => Set<CounterService>();
-    public DbSet<CounterSession> CounterSessions => Set<CounterSession>();
+    public DbSet<ServiceSession> ServiceSessions => Set<ServiceSession>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketStatusHistory> TicketStatusHistories => Set<TicketStatusHistory>();
     public DbSet<DailySequence> DailySequences => Set<DailySequence>();
@@ -37,31 +35,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             b.HasIndex(s => s.Code).IsUnique();
         });
 
-        builder.Entity<Counter>(b =>
+        builder.Entity<ServiceSession>(b =>
         {
-            b.Property(c => c.Name).HasMaxLength(100).IsRequired();
-            b.HasIndex(c => c.Name).IsUnique();
-        });
-
-        builder.Entity<CounterService>(b =>
-        {
-            b.HasKey(cs => new { cs.CounterId, cs.ServiceId });
-            b.HasOne(cs => cs.Counter)
-                .WithMany(c => c.CounterServices)
-                .HasForeignKey(cs => cs.CounterId)
-                .OnDelete(DeleteBehavior.Cascade);
-            b.HasOne(cs => cs.Service)
-                .WithMany(s => s.CounterServices)
-                .HasForeignKey(cs => cs.ServiceId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<CounterSession>(b =>
-        {
-            b.HasOne(cs => cs.Employee).WithMany().HasForeignKey(cs => cs.EmployeeId).OnDelete(DeleteBehavior.Restrict);
-            b.HasOne(cs => cs.Counter).WithMany(c => c.Sessions).HasForeignKey(cs => cs.CounterId).OnDelete(DeleteBehavior.Restrict);
-            b.HasOne(cs => cs.Service).WithMany().HasForeignKey(cs => cs.ServiceId).OnDelete(DeleteBehavior.Restrict);
-            b.HasIndex(cs => new { cs.EmployeeId, cs.EndedAt });
+            b.HasOne(ss => ss.Employee).WithMany().HasForeignKey(ss => ss.EmployeeId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(ss => ss.Service).WithMany().HasForeignKey(ss => ss.ServiceId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(ss => new { ss.EmployeeId, ss.EndedAt });
         });
 
         builder.Entity<DailySequence>(b =>
@@ -78,7 +56,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             b.HasIndex(t => new { t.Status, t.ServiceId });
 
             b.HasOne(t => t.Service).WithMany(s => s.Tickets).HasForeignKey(t => t.ServiceId).OnDelete(DeleteBehavior.Restrict);
-            b.HasOne(t => t.Counter).WithMany().HasForeignKey(t => t.CounterId).OnDelete(DeleteBehavior.SetNull);
             b.HasOne(t => t.Employee).WithMany().HasForeignKey(t => t.EmployeeId).OnDelete(DeleteBehavior.SetNull);
             b.HasOne(t => t.TransferredFromTicket).WithMany().HasForeignKey(t => t.TransferredFromTicketId).OnDelete(DeleteBehavior.Restrict);
         });

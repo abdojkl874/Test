@@ -636,11 +636,6 @@ html, body {
     color: var(--hq-accent-soft);
     margin-top: .3rem;
 }
-.hq-display-now-service {
-    color: #B9CBDA;
-    font-size: 1.15rem;
-}
-
 .hq-display-recent {
     background: rgba(10,31,51,.55);
     border: 1px solid rgba(255,255,255,.10);
@@ -674,10 +669,6 @@ html, body {
     font-weight: 700;
     color: var(--hq-accent-soft);
     font-size: 1.05rem;
-}
-.hq-recent-row .hq-recent-service {
-    color: #9FC3DE;
-    font-size: .9rem;
 }
 .hq-recent-row.is-serving { border-inline-start-color: var(--hq-info); }
 .hq-recent-row.is-recall { border-inline-start-color: var(--hq-accent); }

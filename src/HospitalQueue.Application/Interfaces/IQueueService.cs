@@ -7,11 +7,11 @@ public interface IQueueService
 {
     Task<TicketDto> CreateTicketAsync(Guid serviceId, CancellationToken ct = default);
 
-    Task<CounterSession> StartSessionAsync(Guid employeeId, Guid counterId, Guid serviceId, CancellationToken ct = default);
+    Task<ServiceSession> StartSessionAsync(Guid employeeId, Guid serviceId, CancellationToken ct = default);
     Task EndSessionAsync(Guid sessionId, CancellationToken ct = default);
-    Task<CounterSession?> GetActiveSessionAsync(Guid employeeId, CancellationToken ct = default);
+    Task<ServiceSession?> GetActiveSessionAsync(Guid employeeId, CancellationToken ct = default);
 
-    Task<TicketDto?> CallNextAsync(Guid counterSessionId, CancellationToken ct = default);
+    Task<TicketDto?> CallNextAsync(Guid sessionId, CancellationToken ct = default);
     Task<TicketDto> RecallAsync(Guid ticketId, CancellationToken ct = default);
     Task<TicketDto> StartServiceAsync(Guid ticketId, CancellationToken ct = default);
     Task<TicketDto> CompleteAsync(Guid ticketId, string? notes, CancellationToken ct = default);

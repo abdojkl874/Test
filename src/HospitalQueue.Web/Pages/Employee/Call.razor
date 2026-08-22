@@ -14,22 +14,14 @@
 <PageTitle>شاشة النداء</PageTitle>
 
 <div class="hq-call-shell">
-    @* The counter/clinic pickers live on the main screen rather than behind a
-       separate "start session" step: picking (or changing) either one opens the
-       matching session straight away. *@
+    @* The clinic picker lives on the main screen rather than behind a separate
+       "start session" step: picking (or changing) it opens the matching session
+       straight away. *@
     <div class="hq-session-bar">
         <div class="hq-session-bar-fields">
-            <MudSelect T="string" Label="الشباك" Value="selectedCounterId" ValueChanged="OnCounterChangedAsync"
+            <MudSelect T="string" Label="العيادة" Value="selectedServiceId" ValueChanged="OnServiceChangedAsync"
                        Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-session-select">
-                @foreach (var counter in counters)
-                {
-                    <MudSelectItem Value="@counter.Id.ToString()">@counter.Name</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="string" Label="الخدمة / العيادة" Value="selectedServiceId" ValueChanged="OnServiceChangedAsync"
-                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-session-select"
-                       Disabled="!availableServices.Any()">
-                @foreach (var service in availableServices)
+                @foreach (var service in allServices)
                 {
                     <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
                 }
@@ -40,7 +32,7 @@
         {
             <div class="hq-session-hint">
                 <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Small" />
-                <span>اختر الشباك والعيادة لبدء العمل</span>
+                <span>اختر العيادة لبدء العمل</span>
             </div>
         }
         else
@@ -72,7 +64,7 @@
             {
                 <MudIcon Icon="@Icons.Material.Outlined.ConfirmationNumber" Class="hq-ticket-empty-icon" />
                 <div class="hq-ticket-empty-text">
-                    @(activeSession is null ? "اختر الشباك والعيادة للبدء" : "لا توجد تذكرة حالية")
+                    @(activeSession is null ? "اختر العيادة للبدء" : "لا توجد تذكرة حالية")
                 </div>
             }
         </div>
@@ -129,13 +121,10 @@
 
 @code {
     private Guid employeeId;
-    private List<Counter> counters = new();
     private List<Service> allServices = new();
-    private List<Service> availableServices = new();
-    private string selectedCounterId = string.Empty;
     private string selectedServiceId = string.Empty;
 
-    private CounterSession? activeSession;
+    private ServiceSession? activeSession;
     private TicketDto? currentTicket;
     private int waitingCount;
     private bool isBusy;
@@ -190,10 +179,6 @@
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         employeeId = Guid.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        counters = await Db.Counters
-            .Include(c => c.CounterServices).ThenInclude(cs => cs.Service)
-            .Where(c => c.IsActive)
-            .ToListAsync();
         allServices = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
 
         Bus.QueueChanged += OnQueueChangedAsync;
@@ -202,43 +187,19 @@
         if (existing is not null)
         {
             activeSession = existing;
-            selectedCounterId = existing.CounterId.ToString();
-            RefreshAvailableServices();
             selectedServiceId = existing.ServiceId.ToString();
             waitingCount = await QueueService.GetWaitingCountAsync(existing.ServiceId);
         }
     }
 
-    private void RefreshAvailableServices()
-    {
-        availableServices = counters.FirstOrDefault(c => c.Id.ToString() == selectedCounterId)
-            ?.CounterServices.Select(cs => cs.Service).Where(s => s.IsActive).ToList() ?? new();
-    }
-
-    private async Task OnCounterChangedAsync(string counterId)
-    {
-        if (!await CanSwitchSessionAsync())
-        {
-            return;
-        }
-
-        selectedCounterId = counterId;
-        RefreshAvailableServices();
-
-        // Keep the clinic only if the new counter also serves it, otherwise fall
-        // back to its single service (or clear it and wait for a pick).
-        if (!availableServices.Any(s => s.Id.ToString() == selectedServiceId))
-        {
-            selectedServiceId = availableServices.Count == 1 ? availableServices[0].Id.ToString() : string.Empty;
-        }
-
-        await SyncSessionAsync();
-    }
-
     private async Task OnServiceChangedAsync(string serviceId)
     {
-        if (!await CanSwitchSessionAsync())
+        // Switching clinics ends the current session, which would strand a
+        // patient who is already being called or served — so make the employee
+        // finish (or skip/transfer) that ticket first.
+        if (currentTicket is not null)
         {
+            Snackbar.Add("الرجاء إنهاء التذكرة الحالية قبل تغيير العيادة", Severity.Warning);
             return;
         }
 
@@ -246,37 +207,21 @@
         await SyncSessionAsync();
     }
 
-    /// <summary>
-    /// Switching counter/clinic ends the current session, which would strand a
-    /// patient who is already being called or served — so make the employee
-    /// finish (or skip/transfer) that ticket first.
-    /// </summary>
-    private Task<bool> CanSwitchSessionAsync()
-    {
-        if (currentTicket is not null)
-        {
-            Snackbar.Add("الرجاء إنهاء التذكرة الحالية قبل تغيير الشباك أو العيادة", Severity.Warning);
-            return Task.FromResult(false);
-        }
-
-        return Task.FromResult(true);
-    }
-
     private async Task SyncSessionAsync()
     {
-        if (!Guid.TryParse(selectedCounterId, out var counterId) || !Guid.TryParse(selectedServiceId, out var serviceId))
+        if (!Guid.TryParse(selectedServiceId, out var serviceId))
         {
             return;
         }
 
-        if (activeSession is not null && activeSession.CounterId == counterId && activeSession.ServiceId == serviceId)
+        if (activeSession is not null && activeSession.ServiceId == serviceId)
         {
             return;
         }
 
         try
         {
-            await QueueService.StartSessionAsync(employeeId, counterId, serviceId);
+            await QueueService.StartSessionAsync(employeeId, serviceId);
             activeSession = await QueueService.GetActiveSessionAsync(employeeId);
             waitingCount = await QueueService.GetWaitingCountAsync(serviceId);
         }

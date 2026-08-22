@@ -1,19 +1,15 @@
 namespace HospitalQueue.Domain.Entities;
 
 /// <summary>
-/// Tracks which employee is actively working which counter, for which
-/// service, over a time span — used both to route "call next" and to
-/// build per-employee / per-counter reports.
+/// Tracks which employee is actively serving which clinic, over a time span —
+/// used both to route "call next" and to build per-employee reports.
 /// </summary>
-public class CounterSession
+public class ServiceSession
 {
     public Guid Id { get; set; }
 
     public Guid EmployeeId { get; set; }
     public ApplicationUser Employee { get; set; } = null!;
-
-    public Guid CounterId { get; set; }
-    public Counter Counter { get; set; } = null!;
 
     public Guid ServiceId { get; set; }
     public Service Service { get; set; } = null!;

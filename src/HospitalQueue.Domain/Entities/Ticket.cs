@@ -15,9 +15,6 @@ public class Ticket
     public Guid ServiceId { get; set; }
     public Service Service { get; set; } = null!;
 
-    public Guid? CounterId { get; set; }
-    public Counter? Counter { get; set; }
-
     public Guid? EmployeeId { get; set; }
     public ApplicationUser? Employee { get; set; }
 

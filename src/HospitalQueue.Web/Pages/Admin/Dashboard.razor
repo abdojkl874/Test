@@ -72,12 +72,6 @@
                 <MudChart ChartType="ChartType.Bar" ChartSeries="@employeeSeries" XAxisLabels="@employeeLabels" Height="280px" />
             </MudPaper>
         </MudItem>
-        <MudItem xs="12" md="6">
-            <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
-                <MudText Typo="Typo.subtitle1" Class="mb-2">عدد التذاكر لكل شباك</MudText>
-                <MudChart ChartType="ChartType.Bar" ChartSeries="@counterSeries" XAxisLabels="@counterLabels" Height="280px" />
-            </MudPaper>
-        </MudItem>
     </MudGrid>
 
     <MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
@@ -140,12 +134,10 @@
 
     private string[] serviceLabels = Array.Empty<string>();
     private string[] employeeLabels = Array.Empty<string>();
-    private string[] counterLabels = Array.Empty<string>();
     private List<ChartSeries> ticketCountSeries = new();
     private List<ChartSeries> waitTimeSeries = new();
     private List<ChartSeries> serviceTimeSeries = new();
     private List<ChartSeries> employeeSeries = new();
-    private List<ChartSeries> counterSeries = new();
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -174,12 +166,6 @@
         employeeSeries = new List<ChartSeries>
         {
             new() { Name = "عدد التذاكر", Data = summary.EmployeeStats.Select(e => (double)e.TicketsHandled).ToArray() },
-        };
-
-        counterLabels = summary.CounterStats.Select(c => c.CounterName).ToArray();
-        counterSeries = new List<ChartSeries>
-        {
-            new() { Name = "عدد التذاكر", Data = summary.CounterStats.Select(c => (double)c.TicketsHandled).ToArray() },
         };
     }
 

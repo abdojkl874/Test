@@ -13,7 +13,7 @@ namespace HospitalQueue.Infrastructure.Data;
 /// <summary>
 /// Seeds the four fixed roles with their default permission claims, one
 /// admin account to log in with the first time, and a small set of sample
-/// clinics/counters so the screens aren't empty on first run.
+/// clinics so the screens aren't empty on first run.
 /// Everything here is idempotent — safe to run on every startup.
 /// </summary>
 public static class SeedData
@@ -60,6 +60,31 @@ public static class SeedData
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "BrandPrimaryColor" text NULL;
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "BrandAccentColor" text NULL;
             ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "EmployeeCode";
+
+            -- Counters were dropped in favour of clinics alone: sessions are now
+            -- (employee, clinic). On a fresh database EnsureCreatedAsync has
+            -- already built ServiceSessions and none of the counter tables exist,
+            -- so every statement here is a no-op; on an existing one this is the
+            -- upgrade path.
+            CREATE TABLE IF NOT EXISTS "ServiceSessions" (
+                "Id" uuid NOT NULL CONSTRAINT "PK_ServiceSessions" PRIMARY KEY,
+                "EmployeeId" uuid NOT NULL,
+                "ServiceId" uuid NOT NULL,
+                "StartedAt" timestamp with time zone NOT NULL,
+                "EndedAt" timestamp with time zone NULL,
+                CONSTRAINT "FK_ServiceSessions_AspNetUsers_EmployeeId"
+                    FOREIGN KEY ("EmployeeId") REFERENCES "AspNetUsers" ("Id") ON DELETE RESTRICT,
+                CONSTRAINT "FK_ServiceSessions_Services_ServiceId"
+                    FOREIGN KEY ("ServiceId") REFERENCES "Services" ("Id") ON DELETE RESTRICT
+            );
+            CREATE INDEX IF NOT EXISTS "IX_ServiceSessions_EmployeeId_EndedAt"
+                ON "ServiceSessions" ("EmployeeId", "EndedAt");
+
+            ALTER TABLE "Tickets" DROP COLUMN IF EXISTS "CounterId";
+            ALTER TABLE "TicketStatusHistories" DROP COLUMN IF EXISTS "CounterId";
+            DROP TABLE IF EXISTS "CounterServices";
+            DROP TABLE IF EXISTS "CounterSessions";
+            DROP TABLE IF EXISTS "Counters";
             """);
 
         foreach (var roleName in AppRoles.All)
@@ -120,20 +145,6 @@ public static class SeedData
                 new Service { Id = Guid.NewGuid(), NameAr = "المختبر", Code = "L", DisplayOrder = 3 },
             };
             db.Services.AddRange(services1);
-
-            var counters = new[]
-            {
-                new Counter { Id = Guid.NewGuid(), Name = "شباك 1" },
-                new Counter { Id = Guid.NewGuid(), Name = "شباك 2" },
-                new Counter { Id = Guid.NewGuid(), Name = "شباك 3" },
-            };
-            db.Counters.AddRange(counters);
-
-            for (var i = 0; i < 3; i++)
-            {
-                db.CounterServices.Add(new CounterService { CounterId = counters[i].Id, ServiceId = services1[i].Id });
-            }
-
             await db.SaveChangesAsync();
         }
 

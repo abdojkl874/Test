@@ -12,7 +12,6 @@ public static class AppPermissions
     public const string UsersManage = "users.manage";
     public const string RolesManage = "roles.manage";
     public const string ServicesManage = "services.manage";
-    public const string CountersManage = "counters.manage";
     public const string TicketsCall = "tickets.call";
     public const string TicketsCreate = "tickets.create";
     public const string ReportsView = "reports.view";
@@ -20,7 +19,7 @@ public static class AppPermissions
 
     public static readonly string[] All =
     {
-        UsersManage, RolesManage, ServicesManage, CountersManage,
+        UsersManage, RolesManage, ServicesManage,
         TicketsCall, TicketsCreate, ReportsView, DisplayView
     };
 }

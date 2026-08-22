@@ -7,8 +7,6 @@ public record TicketDto(
     string Number,
     Guid ServiceId,
     string ServiceName,
-    Guid? CounterId,
-    string? CounterName,
     TicketStatus Status,
     DateTime CreatedAt,
     DateTime? CalledAt,
@@ -18,9 +16,7 @@ public record TicketDto(
 public record TicketCalledEvent(
     string Number,
     string ServiceName,
-    string CounterName,
     Guid ServiceId,
-    Guid CounterId,
     DateTime CalledAt,
     bool IsRecall,
     TicketStatus Status);

@@ -17,16 +17,9 @@ public record EmployeeStatsDto(
     int TicketsHandled,
     double AverageServiceMinutes);
 
-public record CounterStatsDto(
-    Guid CounterId,
-    string CounterName,
-    int TicketsHandled,
-    double AverageServiceMinutes);
-
 public record DashboardSummaryDto(
     IReadOnlyList<ServiceStatsDto> ServiceStats,
     IReadOnlyList<EmployeeStatsDto> EmployeeStats,
-    IReadOnlyList<CounterStatsDto> CounterStats,
     int WaitingNow,
     int InServiceNow);
 

@@ -14,6 +14,5 @@ public class TicketStatusHistory
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
 
     public Guid? EmployeeId { get; set; }
-    public Guid? CounterId { get; set; }
     public string? Note { get; set; }
 }

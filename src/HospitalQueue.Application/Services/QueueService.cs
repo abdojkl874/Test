@@ -30,18 +30,19 @@ public class QueueService : IQueueService
         var ticket = await CreateTicketCoreAsync(service, transferredFromTicketId: null, ct);
         await _notifier.QueueChangedAsync(serviceId, ct);
 
-        return ToDto(ticket, service.NameAr, counterName: null);
+        return ToDto(ticket, service.NameAr);
     }
 
-    public async Task<CounterSession> StartSessionAsync(Guid employeeId, Guid counterId, Guid serviceId, CancellationToken ct = default)
+    public async Task<ServiceSession> StartSessionAsync(Guid employeeId, Guid serviceId, CancellationToken ct = default)
     {
-        var allowed = await _db.CounterServices.AnyAsync(cs => cs.CounterId == counterId && cs.ServiceId == serviceId, ct);
-        if (!allowed)
+        var service = await _db.Services.FirstOrDefaultAsync(s => s.Id == serviceId, ct)
+            ?? throw new QueueOperationException("العيادة المطلوبة غير موجودة");
+        if (!service.IsActive)
         {
-            throw new QueueOperationException("هذا الشباك غير مخصص لهذه الخدمة");
+            throw new QueueOperationException("هذه العيادة غير متاحة حالياً");
         }
 
-        var openSessions = await _db.CounterSessions
+        var openSessions = await _db.ServiceSessions
             .Where(s => s.EmployeeId == employeeId && s.EndedAt == null)
             .ToListAsync(ct);
         foreach (var open in openSessions)
@@ -49,22 +50,21 @@ public class QueueService : IQueueService
             open.EndedAt = DateTime.UtcNow;
         }
 
-        var session = new CounterSession
+        var session = new ServiceSession
         {
             Id = Guid.NewGuid(),
             EmployeeId = employeeId,
-            CounterId = counterId,
             ServiceId = serviceId,
             StartedAt = DateTime.UtcNow,
         };
-        _db.CounterSessions.Add(session);
+        _db.ServiceSessions.Add(session);
         await _db.SaveChangesAsync(ct);
         return session;
     }
 
     public async Task EndSessionAsync(Guid sessionId, CancellationToken ct = default)
     {
-        var session = await _db.CounterSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
+        var session = await _db.ServiceSessions.FirstOrDefaultAsync(s => s.Id == sessionId, ct);
         if (session is not null && session.EndedAt is null)
         {
             session.EndedAt = DateTime.UtcNow;
@@ -72,23 +72,21 @@ public class QueueService : IQueueService
         }
     }
 
-    public async Task<CounterSession?> GetActiveSessionAsync(Guid employeeId, CancellationToken ct = default)
+    public async Task<ServiceSession?> GetActiveSessionAsync(Guid employeeId, CancellationToken ct = default)
     {
-        return await _db.CounterSessions
-            .Include(s => s.Counter)
+        return await _db.ServiceSessions
             .Include(s => s.Service)
             .Where(s => s.EmployeeId == employeeId && s.EndedAt == null)
             .OrderByDescending(s => s.StartedAt)
             .FirstOrDefaultAsync(ct);
     }
 
-    public async Task<TicketDto?> CallNextAsync(Guid counterSessionId, CancellationToken ct = default)
+    public async Task<TicketDto?> CallNextAsync(Guid sessionId, CancellationToken ct = default)
     {
-        var session = await _db.CounterSessions
-            .Include(s => s.Counter)
+        var session = await _db.ServiceSessions
             .Include(s => s.Service)
-            .FirstOrDefaultAsync(s => s.Id == counterSessionId && s.EndedAt == null, ct)
-            ?? throw new QueueOperationException("لا توجد جلسة عمل نشطة على هذا الشباك");
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.EndedAt == null, ct)
+            ?? throw new QueueOperationException("لا توجد جلسة عمل نشطة على هذه العيادة");
 
         var today = DateOnly.FromDateTime(DateTime.Now);
         await ExpireStaleWaitingTicketsAsync(session.ServiceId, today, ct);
@@ -107,7 +105,6 @@ public class QueueService : IQueueService
         }
 
         next.Status = TicketStatus.Called;
-        next.CounterId = session.CounterId;
         next.EmployeeId = session.EmployeeId;
         next.CalledAt = DateTime.UtcNow;
 
@@ -118,23 +115,22 @@ public class QueueService : IQueueService
             Status = TicketStatus.Called,
             OccurredAt = next.CalledAt.Value,
             EmployeeId = session.EmployeeId,
-            CounterId = session.CounterId,
         });
 
         await _db.SaveChangesAsync(ct);
 
-        var evt = new TicketCalledEvent(next.Number, session.Service.NameAr, session.Counter.Name,
-            session.ServiceId, session.CounterId, next.CalledAt.Value, IsRecall: false, Status: next.Status);
+        var evt = new TicketCalledEvent(next.Number, session.Service.NameAr,
+            session.ServiceId, next.CalledAt.Value, IsRecall: false, Status: next.Status);
         await _notifier.TicketCalledAsync(evt, ct);
         await _notifier.QueueChangedAsync(session.ServiceId, ct);
 
-        return ToDto(next, session.Service.NameAr, session.Counter.Name);
+        return ToDto(next, session.Service.NameAr);
     }
 
     public async Task<TicketDto> RecallAsync(Guid ticketId, CancellationToken ct = default)
     {
         var ticket = await LoadTicketAsync(ticketId, ct);
-        if (ticket.Status is not (TicketStatus.Called or TicketStatus.InService) || ticket.CounterId is null)
+        if (ticket.Status is not (TicketStatus.Called or TicketStatus.InService))
         {
             throw new QueueOperationException("لا يمكن إعادة نداء تذكرة لم يتم استدعاؤها بعد");
         }
@@ -149,17 +145,16 @@ public class QueueService : IQueueService
             Status = ticket.Status,
             OccurredAt = ticket.CalledAt.Value,
             EmployeeId = ticket.EmployeeId,
-            CounterId = ticket.CounterId,
             Note = "إعادة نداء",
         });
 
         await _db.SaveChangesAsync(ct);
 
-        var evt = new TicketCalledEvent(ticket.Number, ticket.Service.NameAr, ticket.Counter!.Name,
-            ticket.ServiceId, ticket.CounterId.Value, ticket.CalledAt.Value, IsRecall: true, Status: ticket.Status);
+        var evt = new TicketCalledEvent(ticket.Number, ticket.Service.NameAr,
+            ticket.ServiceId, ticket.CalledAt.Value, IsRecall: true, Status: ticket.Status);
         await _notifier.TicketCalledAsync(evt, ct);
 
-        return ToDto(ticket, ticket.Service.NameAr, ticket.Counter.Name);
+        return ToDto(ticket, ticket.Service.NameAr);
     }
 
     public async Task<TicketDto> StartServiceAsync(Guid ticketId, CancellationToken ct = default)
@@ -180,12 +175,11 @@ public class QueueService : IQueueService
             Status = TicketStatus.InService,
             OccurredAt = ticket.ServiceStartedAt.Value,
             EmployeeId = ticket.EmployeeId,
-            CounterId = ticket.CounterId,
         });
 
         await _db.SaveChangesAsync(ct);
         await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
-        return ToDto(ticket, ticket.Service.NameAr, ticket.Counter?.Name);
+        return ToDto(ticket, ticket.Service.NameAr);
     }
 
     public async Task<TicketDto> CompleteAsync(Guid ticketId, string? notes, CancellationToken ct = default)
@@ -208,7 +202,6 @@ public class QueueService : IQueueService
             Status = TicketStatus.Done,
             OccurredAt = ticket.ServiceEndedAt.Value,
             EmployeeId = ticket.EmployeeId,
-            CounterId = ticket.CounterId,
             Note = notes,
         });
 
@@ -216,7 +209,7 @@ public class QueueService : IQueueService
         await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
         await _notifier.QueueChangedAsync(ticket.ServiceId, ct);
 
-        return ToDto(ticket, ticket.Service.NameAr, ticket.Counter?.Name);
+        return ToDto(ticket, ticket.Service.NameAr);
     }
 
     public async Task<TicketDto> SkipAsync(Guid ticketId, CancellationToken ct = default)
@@ -237,7 +230,6 @@ public class QueueService : IQueueService
             Status = TicketStatus.Skipped,
             OccurredAt = ticket.ServiceEndedAt.Value,
             EmployeeId = ticket.EmployeeId,
-            CounterId = ticket.CounterId,
             Note = "لم يحضر المريض",
         });
 
@@ -245,7 +237,7 @@ public class QueueService : IQueueService
         await _notifier.TicketStatusChangedAsync(new TicketStatusChangedEvent(ticket.Number, ticket.ServiceId, ticket.Status), ct);
         await _notifier.QueueChangedAsync(ticket.ServiceId, ct);
 
-        return ToDto(ticket, ticket.Service.NameAr, ticket.Counter?.Name);
+        return ToDto(ticket, ticket.Service.NameAr);
     }
 
     public async Task<TicketDto> TransferAsync(Guid ticketId, Guid newServiceId, CancellationToken ct = default)
@@ -278,7 +270,6 @@ public class QueueService : IQueueService
             Status = TicketStatus.Transferred,
             OccurredAt = ticket.ServiceEndedAt.Value,
             EmployeeId = ticket.EmployeeId,
-            CounterId = ticket.CounterId,
             Note = $"تحويل إلى {newService.NameAr}",
         });
 
@@ -289,7 +280,7 @@ public class QueueService : IQueueService
         await _notifier.QueueChangedAsync(ticket.ServiceId, ct);
         await _notifier.QueueChangedAsync(newServiceId, ct);
 
-        return ToDto(newTicket, newService.NameAr, counterName: null);
+        return ToDto(newTicket, newService.NameAr);
     }
 
     public async Task<int> GetWaitingCountAsync(Guid serviceId, CancellationToken ct = default)
@@ -303,11 +294,11 @@ public class QueueService : IQueueService
     {
         var today = DateOnly.FromDateTime(DateTime.Now);
         return await _db.Tickets
-            .Where(t => t.QueueDate == today && t.CalledAt != null && t.CounterId != null)
+            .Where(t => t.QueueDate == today && t.CalledAt != null)
             .OrderByDescending(t => t.CalledAt)
             .Take(take)
             .Select(t => new TicketCalledEvent(
-                t.Number, t.Service.NameAr, t.Counter!.Name, t.ServiceId, t.CounterId!.Value,
+                t.Number, t.Service.NameAr, t.ServiceId,
                 t.CalledAt!.Value, t.RecallCount > 0, t.Status))
             .ToListAsync(ct);
     }
@@ -399,11 +390,10 @@ public class QueueService : IQueueService
     {
         return await _db.Tickets
             .Include(t => t.Service)
-            .Include(t => t.Counter)
             .FirstOrDefaultAsync(t => t.Id == ticketId, ct)
             ?? throw new QueueOperationException("التذكرة غير موجودة");
     }
 
-    private static TicketDto ToDto(Ticket t, string serviceName, string? counterName) => new(
-        t.Id, t.Number, t.ServiceId, serviceName, t.CounterId, counterName, t.Status, t.CreatedAt, t.CalledAt, t.RecallCount);
+    private static TicketDto ToDto(Ticket t, string serviceName) => new(
+        t.Id, t.Number, t.ServiceId, serviceName, t.Status, t.CreatedAt, t.CalledAt, t.RecallCount);
 }

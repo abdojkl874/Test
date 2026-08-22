@@ -30,8 +30,6 @@ public class ReportService : IReportService
                 ServiceName = t.Service.NameAr,
                 t.EmployeeId,
                 EmployeeName = t.Employee != null ? t.Employee.FullName : null,
-                t.CounterId,
-                CounterName = t.Counter != null ? t.Counter.Name : null,
                 t.Status,
                 t.CreatedAt,
                 t.CalledAt,
@@ -65,24 +63,13 @@ public class ReportService : IReportService
             .OrderByDescending(e => e.TicketsHandled)
             .ToList();
 
-        var counterStats = rows
-            .Where(r => r.CounterId != null && r.ServiceEndedAt != null)
-            .GroupBy(r => new { r.CounterId, r.CounterName })
-            .Select(g => new CounterStatsDto(
-                g.Key.CounterId!.Value,
-                g.Key.CounterName ?? "-",
-                g.Count(),
-                AverageMinutes(g.Select(x => x.ServiceEndedAt!.Value - (x.ServiceStartedAt ?? x.CalledAt ?? x.CreatedAt)))))
-            .OrderByDescending(c => c.TicketsHandled)
-            .ToList();
-
         // "Now" means today: a ticket left waiting or in-service when a clinic
         // closed would otherwise keep inflating these tiles indefinitely.
         var today = DateOnly.FromDateTime(DateTime.Now);
         var waitingNow = await _db.Tickets.CountAsync(t => t.Status == TicketStatus.Waiting && t.QueueDate == today, ct);
         var inServiceNow = await _db.Tickets.CountAsync(t => t.Status == TicketStatus.InService && t.QueueDate == today, ct);
 
-        return new DashboardSummaryDto(serviceStats, employeeStats, counterStats, waitingNow, inServiceNow);
+        return new DashboardSummaryDto(serviceStats, employeeStats, waitingNow, inServiceNow);
     }
 
     public async Task<IReadOnlyList<TicketLogRowDto>> GetTicketLogAsync(DateOnly from, DateOnly to, CancellationToken ct = default)
