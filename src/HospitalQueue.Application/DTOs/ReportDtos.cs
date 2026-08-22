@@ -28,6 +28,8 @@ public record TicketLogRowDto(
     string Number,
     string ServiceName,
     DateOnly Date,
+    /// <summary>Local clock time the service started (falls back to the call time), null if never called.</summary>
+    TimeOnly? ServedAt,
     TicketStatus Status,
     string? ServedByName,
     double? WaitMinutes,

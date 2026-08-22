@@ -96,6 +96,7 @@ public class ReportService : IReportService
                 r.Number,
                 r.ServiceName,
                 r.QueueDate,
+                LocalTimeOf(r.ServiceStartedAt ?? r.CalledAt),
                 r.Status,
                 r.EmployeeName,
                 r.CalledAt.HasValue ? Math.Round((r.CalledAt.Value - r.CreatedAt).TotalMinutes, 1) : null,
@@ -103,6 +104,25 @@ public class ReportService : IReportService
                     ? Math.Round((r.ServiceEndedAt.Value - (r.ServiceStartedAt ?? r.CalledAt ?? r.CreatedAt)).TotalMinutes, 1)
                     : null))
             .ToList();
+    }
+
+    /// <summary>
+    /// Timestamps are stored in UTC, but QueueDate is the local queue day and
+    /// the report is read by staff on the local clock — so the time of day has
+    /// to be converted before it is shown next to that date.
+    /// </summary>
+    private static TimeOnly? LocalTimeOf(DateTime? utc)
+    {
+        if (utc is null)
+        {
+            return null;
+        }
+
+        var value = utc.Value.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(utc.Value, DateTimeKind.Utc)
+            : utc.Value;
+
+        return TimeOnly.FromDateTime(value.ToLocalTime());
     }
 
     private static double AverageMinutes(IEnumerable<TimeSpan> spans)

@@ -102,7 +102,7 @@
             <HeaderContent>
                 <MudTh>رقم الدور</MudTh>
                 <MudTh>الخدمة</MudTh>
-                <MudTh>التاريخ</MudTh>
+                <MudTh>التاريخ والوقت</MudTh>
                 <MudTh>الحالة</MudTh>
                 <MudTh>من قام بخدمته</MudTh>
                 <MudTh>زمن الانتظار (د)</MudTh>
@@ -111,7 +111,12 @@
             <RowTemplate>
                 <MudTd DataLabel="رقم الدور">@context.Number</MudTd>
                 <MudTd DataLabel="الخدمة">@context.ServiceName</MudTd>
-                <MudTd DataLabel="التاريخ">@context.Date.ToString("yyyy-MM-dd")</MudTd>
+                <MudTd DataLabel="التاريخ والوقت">
+                    <div>@context.Date.ToString("yyyy-MM-dd")</div>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">
+                        @(context.ServedAt?.ToString("HH:mm") ?? "—")
+                    </MudText>
+                </MudTd>
                 <MudTd DataLabel="الحالة">
                     <MudChip T="string" Size="Size.Small" Class="@TicketStatusChipClass(context.Status)">@TicketStatusLabel(context.Status)</MudChip>
                 </MudTd>
