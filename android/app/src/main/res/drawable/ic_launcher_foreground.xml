@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A ticket on a board — the app's whole job in one mark. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Board -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,32 h52 a5,5 0 0 1 5,5 v34 a5,5 0 0 1 -5,5 h-52 a5,5 0 0 1 -5,-5 v-34 a5,5 0 0 1 5,-5 z" />
+
+    <!-- Stand -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,76 h8 v9 h-8 z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,85 h32 a3,3 0 0 1 0,6 h-32 a3,3 0 0 1 0,-6 z" />
+
+    <!-- Ticket letter -->
+    <path
+        android:fillColor="#123B5E"
+        android:pathData="M33,44 h17 v6 h-5.5 v16 h-6 v-16 h-5.5 z" />
+
+    <!-- Separator dash -->
+    <path
+        android:fillColor="#E0793F"
+        android:pathData="M52,53 h7 v5 h-7 z" />
+
+    <!-- Ticket digits -->
+    <path
+        android:fillColor="#E0793F"
+        android:pathData="M62,44 h6 v22 h-6 z" />
+    <path
+        android:fillColor="#E0793F"
+        android:pathData="M70,44 h6 v22 h-6 z" />
+</vector>

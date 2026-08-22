@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<style>
+body {
+    background: radial-gradient(circle at 82% -10%, var(--navy-mid) 0%, var(--navy-deep) 62%);
+    color: #fff;
+    display: flex; flex-direction: column;
+    padding: 30px 44px 26px;
+    gap: 22px;
+}
+header { display: flex; align-items: center; justify-content: space-between; }
+.brand { display: flex; align-items: center; gap: 16px; font-size: 34px; }
+.clock { font-size: 30px; color: #9FC3DE; }
+.clock b { color: #fff; font-weight: 800; }
+
+/* One tile per clinic: a patient looks straight at their own clinic
+   instead of waiting for it to appear in a shared list. */
+.grid {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    min-height: 0;
+}
+.card {
+    border-radius: 26px;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.13);
+    padding: 34px 30px;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+}
+.card.active {
+    background: linear-gradient(160deg, rgba(63,191,127,.22), rgba(10,31,51,.35));
+    border: 2px solid rgba(63,191,127,.65);
+    box-shadow: 0 0 60px rgba(63,191,127,.25);
+}
+.card-clinic {
+    font-size: 44px; font-weight: 800; color: var(--orange-soft);
+}
+.card-num {
+    font-size: 150px; font-weight: 900; line-height: 1;
+    text-align: center; margin: 10px 0;
+}
+.card.idle .card-num { color: rgba(255,255,255,.28); }
+.card-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 25px; color: #9FC3DE;
+}
+.badge {
+    padding: 8px 20px; border-radius: 999px; font-weight: 700; font-size: 24px;
+}
+.badge.serving { background: rgba(63,191,127,.25); color: #7FE0AA; }
+.badge.called  { background: rgba(44,123,166,.3);  color: #7FC3E8; }
+.badge.idle    { background: rgba(255,255,255,.1); color: #9FC3DE; }
+.waiting-pill { font-size: 24px; }
+.waiting-pill b { color: #fff; font-size: 30px; }
+
+.ticker {
+    height: 68px; flex: none;
+    border-radius: 16px;
+    background: linear-gradient(90deg, rgba(224,121,63,.22), rgba(18,59,94,.6));
+    border: 1px solid rgba(224,121,63,.5);
+    display: flex; align-items: center; padding: 0 30px;
+    font-size: 27px; font-weight: 600;
+}
+</style>
+</head>
+<body>
+<header>
+    <div class="brand"><span class="logo-mark">ش</span> مشفى شفق — قسم العيادات</div>
+    <div class="clock tabular">السبت، 2 ربيع الأول 1448 — <b>16:10</b></div>
+</header>
+
+<section class="grid">
+    <div class="card active">
+        <div class="card-clinic">الأطفال</div>
+        <div class="card-num tabular">B-001</div>
+        <div class="card-foot">
+            <span class="badge serving">قيد الخدمة</span>
+            <span class="waiting-pill">بالانتظار <b>4</b></span>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-clinic">الباطنية</div>
+        <div class="card-num tabular">A-014</div>
+        <div class="card-foot">
+            <span class="badge called">تم النداء</span>
+            <span class="waiting-pill">بالانتظار <b>7</b></span>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-clinic">المختبر</div>
+        <div class="card-num tabular">L-007</div>
+        <div class="card-foot">
+            <span class="badge serving">قيد الخدمة</span>
+            <span class="waiting-pill">بالانتظار <b>2</b></span>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-clinic">الأسنان</div>
+        <div class="card-num tabular">D-009</div>
+        <div class="card-foot">
+            <span class="badge called">تم النداء</span>
+            <span class="waiting-pill">بالانتظار <b>5</b></span>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-clinic">النسائية</div>
+        <div class="card-num tabular">N-003</div>
+        <div class="card-foot">
+            <span class="badge serving">قيد الخدمة</span>
+            <span class="waiting-pill">بالانتظار <b>6</b></span>
+        </div>
+    </div>
+    <div class="card idle">
+        <div class="card-clinic">العظمية</div>
+        <div class="card-num tabular">—</div>
+        <div class="card-foot">
+            <span class="badge idle">لم تبدأ بعد</span>
+            <span class="waiting-pill">بالانتظار <b>0</b></span>
+        </div>
+    </div>
+</section>
+
+<div class="ticker">مرحباً بكم في مشفى شفق — يرجى الانتظار حتى يتم مناداة رقمكم، والحفاظ على هدوء صالة الانتظار</div>
+</body>
+</html>

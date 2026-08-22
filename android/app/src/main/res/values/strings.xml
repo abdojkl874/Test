@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">شاشة عرض الطابور</string>
+
+    <string name="settings_title">إعدادات الاتصال</string>
+    <string name="settings_hint">أدخل عنوان الخادم على الشبكة المحلية. يكفي عنوان الجهاز والمنفذ، وسيُضاف مسار شاشة العرض تلقائياً.</string>
+    <string name="settings_url_hint">192.168.1.10:5000</string>
+    <string name="settings_save">حفظ وعرض الشاشة</string>
+    <string name="settings_url_required">الرجاء إدخال عنوان الخادم</string>
+    <string name="settings_saved">سيتم فتح: %1$s</string>
+
+    <string name="error_title">تعذّر الاتصال بالخادم</string>
+    <string name="error_connect">لا يمكن الوصول إلى %1$s — تأكد أن الخادم يعمل وأن الجهاز على نفس الشبكة. ستتم إعادة المحاولة تلقائياً.</string>
+    <string name="error_retry">إعادة المحاولة الآن</string>
+</resources>

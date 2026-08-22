@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="video.css">
+<style>
+body {
+    background: radial-gradient(circle at 18% -10%, var(--navy-mid) 0%, var(--navy-deep) 60%);
+    color: #fff;
+    display: flex; flex-direction: column;
+    padding: 26px 40px 22px; gap: 18px;
+}
+header { display: flex; align-items: center; justify-content: space-between; flex: none; }
+.brand { display: flex; align-items: center; gap: 14px; font-size: 31px; font-weight: 900; }
+.clock { font-size: 27px; color: #9FC3DE; }
+.clock b { color: #fff; font-weight: 800; }
+
+.body { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1.05fr; gap: 22px; min-height: 0; }
+
+.queue { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.now {
+    flex: none;
+    border-radius: 24px;
+    background: linear-gradient(150deg, rgba(18,59,94,.8), rgba(10,31,51,.5));
+    border: 2px solid rgba(63,191,127,.5);
+    padding: 26px 34px; text-align: center;
+}
+.now-label { font-size: 25px; color: #9FC3DE; font-weight: 600; }
+.now-num { font-size: 148px; font-weight: 900; line-height: .95; text-shadow: 0 0 46px rgba(63,191,127,.55); }
+.now-clinic { font-size: 40px; font-weight: 800; color: var(--orange-soft); margin-top: 4px; }
+.now-status {
+    margin-top: 12px; display: inline-block;
+    font-size: 23px; font-weight: 700;
+    background: rgba(63,191,127,.2); color: #7FE0AA;
+    padding: 7px 22px; border-radius: 999px;
+}
+
+.recent { flex: 1 1 auto; display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.row {
+    display: flex; align-items: center; gap: 14px;
+    background: rgba(255,255,255,.06);
+    border-inline-start: 5px solid #2C7BA6;
+    border-radius: 14px; padding: 12px 18px;
+    flex: 0 0 auto;
+}
+.row.recall { border-inline-start-color: var(--orange); }
+.row-no { font-size: 34px; font-weight: 900; min-width: 4.5ch; }
+.row-clinic { flex: 1 1 auto; font-size: 24px; font-weight: 700; color: var(--orange-soft); }
+.row-time { font-size: 21px; color: #9FC3DE; }
+
+.video { min-height: 0; }
+
+.ticker {
+    height: 60px; flex: none;
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(224,121,63,.22), rgba(18,59,94,.6));
+    border: 1px solid rgba(224,121,63,.5);
+    display: flex; align-items: center; padding: 0 26px;
+    font-size: 24px; font-weight: 600;
+}
+</style>
+</head>
+<body>
+<header>
+    <div class="brand"><span class="logo-mark">ش</span> مشفى شفق — قسم العيادات</div>
+    <div class="clock tabular">السبت، 2 ربيع الأول 1448 — <b>16:10</b></div>
+</header>
+
+<div class="body">
+    <section class="queue">
+        <div class="now">
+            <div class="now-label">الرجاء من صاحب الرقم</div>
+            <div class="now-num tabular">B-001</div>
+            <div class="now-clinic">التوجه إلى عيادة الأطفال</div>
+            <div class="now-status">قيد الخدمة</div>
+        </div>
+        <div class="recent">
+            <div class="row recall"><div class="row-no tabular">A-014</div><div class="row-clinic">الباطنية</div><div class="row-time tabular">16:08</div></div>
+            <div class="row"><div class="row-no tabular">L-007</div><div class="row-clinic">المختبر</div><div class="row-time tabular">16:05</div></div>
+            <div class="row"><div class="row-no tabular">A-013</div><div class="row-clinic">الباطنية</div><div class="row-time tabular">16:01</div></div>
+            <div class="row"><div class="row-no tabular">B-012</div><div class="row-clinic">الأطفال</div><div class="row-time tabular">15:57</div></div>
+        </div>
+    </section>
+
+    <section class="video">
+        <div class="video-play"><span></span></div>
+        <div class="video-cap">مقطع توعوي — التغذية السليمة للأطفال</div>
+        <div class="video-mute">🔇 صامت</div>
+    </section>
+</div>
+
+<div class="ticker">مرحباً بكم في مشفى شفق — يرجى الانتظار حتى يتم مناداة رقمكم</div>
+</body>
+</html>

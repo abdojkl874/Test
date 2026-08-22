@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    font-family: 'Cairo', Tahoma, Arial, sans-serif;
+    direction: rtl;
+}
+
+:root {
+    --navy: #123B5E;
+    --navy-deep: #0A1F33;
+    --navy-mid: #16456c;
+    --orange: #E0793F;
+    --orange-soft: #F2A868;
+    --green: #3FBF7F;
+    --ink: #14202B;
+    --muted: #5B6B7A;
+    --line: #E4E9ED;
+}
+
+.logo {
+    display: inline-flex;
+    align-items: center;
+    gap: .6rem;
+    font-weight: 900;
+}
+.logo-mark {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--orange), var(--orange-soft));
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 26px; font-weight: 900;
+    flex: none;
+}
+.tabular { font-variant-numeric: tabular-nums; }

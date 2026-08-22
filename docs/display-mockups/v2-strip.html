@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="video.css">
+<style>
+body {
+    background: radial-gradient(circle at 80% -10%, var(--navy-mid) 0%, var(--navy-deep) 62%);
+    color: #fff;
+    display: flex; flex-direction: column;
+    padding: 22px 36px 20px; gap: 16px;
+}
+header { display: flex; align-items: center; justify-content: space-between; flex: none; }
+.brand { display: flex; align-items: center; gap: 14px; font-size: 29px; font-weight: 900; }
+.clock { font-size: 26px; color: #9FC3DE; }
+.clock b { color: #fff; font-weight: 800; }
+
+/* Call bar across the top so it is never covered by the video. */
+.callbar {
+    flex: none;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 34px;
+    border-radius: 22px;
+    background: linear-gradient(120deg, rgba(63,191,127,.22), rgba(18,59,94,.7));
+    border: 2px solid rgba(63,191,127,.55);
+    padding: 20px 40px;
+}
+.callbar-num { font-size: 132px; font-weight: 900; line-height: .92; text-shadow: 0 0 44px rgba(63,191,127,.55); }
+.callbar-text { text-align: center; }
+.callbar-label { font-size: 26px; color: #9FC3DE; font-weight: 600; }
+.callbar-clinic { font-size: 52px; font-weight: 900; color: var(--orange-soft); }
+.callbar-status {
+    font-size: 24px; font-weight: 700;
+    background: rgba(63,191,127,.22); color: #7FE0AA;
+    padding: 10px 26px; border-radius: 999px; white-space: nowrap;
+}
+
+/* The video gets the largest single block — good when waits are long. */
+.stage { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 330px; gap: 18px; min-height: 0; }
+.video { min-height: 0; }
+
+.side { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.side h2 { font-size: 23px; color: #9FC3DE; font-weight: 700; flex: none; }
+.sc {
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 14px; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex: 0 0 auto;
+}
+.sc-clinic { font-size: 23px; font-weight: 700; color: var(--orange-soft); }
+.sc-wait { font-size: 18px; color: #9FC3DE; }
+.sc-num { font-size: 38px; font-weight: 900; }
+
+.ticker {
+    height: 56px; flex: none;
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(224,121,63,.22), rgba(18,59,94,.6));
+    border: 1px solid rgba(224,121,63,.5);
+    display: flex; align-items: center; padding: 0 26px;
+    font-size: 23px; font-weight: 600;
+}
+</style>
+</head>
+<body>
+<header>
+    <div class="brand"><span class="logo-mark">ش</span> مشفى شفق — قسم العيادات</div>
+    <div class="clock tabular">السبت، 2 ربيع الأول 1448 — <b>16:10</b></div>
+</header>
+
+<div class="callbar">
+    <div class="callbar-num tabular">B-001</div>
+    <div class="callbar-text">
+        <div class="callbar-label">الرجاء من صاحب الرقم أعلاه</div>
+        <div class="callbar-clinic">التوجه إلى عيادة الأطفال</div>
+    </div>
+    <div class="callbar-status">قيد الخدمة</div>
+</div>
+
+<div class="stage">
+    <section class="video">
+        <div class="video-play"><span></span></div>
+        <div class="video-cap">مقطع توعوي — التغذية السليمة للأطفال</div>
+        <div class="video-mute">🔇 صامت</div>
+    </section>
+
+    <aside class="side">
+        <h2>أرقام العيادات الآن</h2>
+        <div class="sc"><div><div class="sc-clinic">الباطنية</div><div class="sc-wait">بالانتظار 7</div></div><div class="sc-num tabular">A-014</div></div>
+        <div class="sc"><div><div class="sc-clinic">المختبر</div><div class="sc-wait">بالانتظار 2</div></div><div class="sc-num tabular">L-007</div></div>
+        <div class="sc"><div><div class="sc-clinic">الأسنان</div><div class="sc-wait">بالانتظار 5</div></div><div class="sc-num tabular">D-009</div></div>
+        <div class="sc"><div><div class="sc-clinic">النسائية</div><div class="sc-wait">بالانتظار 6</div></div><div class="sc-num tabular">N-003</div></div>
+        <div class="sc"><div><div class="sc-clinic">العظمية</div><div class="sc-wait">بالانتظار 0</div></div><div class="sc-num tabular">—</div></div>
+    </aside>
+</div>
+
+<div class="ticker">مرحباً بكم في مشفى شفق — يرجى الانتظار حتى يتم مناداة رقمكم</div>
+</body>
+</html>

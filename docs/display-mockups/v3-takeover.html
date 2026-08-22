@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="video.css">
+<style>
+body { background: #000; color: #fff; }
+
+/* Video fills the wall; the queue rides on top as a slim overlay, and a
+   fresh call slides in as a large card. Best when waits are long and the
+   video matters as much as the queue. */
+.screen { position: relative; width: 1920px; height: 1080px; }
+.video {
+    position: absolute; inset: 0;
+    border-radius: 0; border: 0;
+}
+/* Keep the badge clear of the clock in the top bar. */
+.video .video-mute { top: auto; bottom: 200px; inset-inline-end: 44px; }
+.scrim {
+    position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(to top, rgba(6,18,30,.92) 0%, rgba(6,18,30,.35) 26%, transparent 46%);
+}
+
+.top {
+    position: absolute; z-index: 3; top: 0; inset-inline: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 44px;
+    background: linear-gradient(to bottom, rgba(6,18,30,.85), transparent);
+}
+.brand { display: flex; align-items: center; gap: 14px; font-size: 30px; font-weight: 900; }
+.clock { font-size: 27px; color: #CFE2F0; }
+.clock b { color: #fff; font-weight: 800; }
+
+/* The active call as a floating card — impossible to miss over video. */
+.callcard {
+    position: absolute; z-index: 4;
+    top: 120px; inset-inline-end: 54px;
+    background: rgba(10,31,51,.90);
+    border: 3px solid rgba(63,191,127,.75);
+    border-radius: 28px;
+    box-shadow: 0 24px 70px rgba(0,0,0,.6), 0 0 70px rgba(63,191,127,.25);
+    padding: 28px 46px; text-align: center;
+    backdrop-filter: blur(6px);
+}
+.callcard-label { font-size: 25px; color: #9FC3DE; font-weight: 600; }
+.callcard-num { font-size: 156px; font-weight: 900; line-height: .94; text-shadow: 0 0 46px rgba(63,191,127,.6); }
+.callcard-clinic { font-size: 42px; font-weight: 900; color: var(--orange-soft); }
+.callcard-status {
+    margin-top: 12px; display: inline-block;
+    font-size: 23px; font-weight: 700;
+    background: rgba(63,191,127,.24); color: #7FE0AA;
+    padding: 8px 24px; border-radius: 999px;
+}
+
+/* Slim strip of the other clinics along the bottom. */
+.bottom {
+    position: absolute; z-index: 3; bottom: 0; inset-inline: 0;
+    padding: 0 44px 26px;
+    display: flex; flex-direction: column; gap: 14px;
+}
+.strip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.sc {
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.20);
+    border-radius: 16px; padding: 12px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+    backdrop-filter: blur(4px);
+}
+.sc-clinic { font-size: 23px; font-weight: 700; color: var(--orange-soft); }
+.sc-wait { font-size: 18px; color: #CFE2F0; }
+.sc-num { font-size: 40px; font-weight: 900; }
+.ticker {
+    height: 56px;
+    border-radius: 14px;
+    background: rgba(224,121,63,.28);
+    border: 1px solid rgba(224,121,63,.6);
+    display: flex; align-items: center; padding: 0 26px;
+    font-size: 23px; font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+</style>
+</head>
+<body>
+<div class="screen">
+    <div class="video">
+        <div class="video-play"><span></span></div>
+        <div class="video-mute">🔇 صامت</div>
+    </div>
+    <div class="scrim"></div>
+
+    <div class="top">
+        <div class="brand"><span class="logo-mark">ش</span> مشفى شفق — قسم العيادات</div>
+        <div class="clock tabular">السبت، 2 ربيع الأول 1448 — <b>16:10</b></div>
+    </div>
+
+    <div class="callcard">
+        <div class="callcard-label">الرجاء من صاحب الرقم</div>
+        <div class="callcard-num tabular">B-001</div>
+        <div class="callcard-clinic">عيادة الأطفال</div>
+        <div class="callcard-status">قيد الخدمة</div>
+    </div>
+
+    <div class="bottom">
+        <div class="strip">
+            <div class="sc"><div><div class="sc-clinic">الباطنية</div><div class="sc-wait">بالانتظار 7</div></div><div class="sc-num tabular">A-014</div></div>
+            <div class="sc"><div><div class="sc-clinic">المختبر</div><div class="sc-wait">بالانتظار 2</div></div><div class="sc-num tabular">L-007</div></div>
+            <div class="sc"><div><div class="sc-clinic">الأسنان</div><div class="sc-wait">بالانتظار 5</div></div><div class="sc-num tabular">D-009</div></div>
+            <div class="sc"><div><div class="sc-clinic">النسائية</div><div class="sc-wait">بالانتظار 6</div></div><div class="sc-num tabular">N-003</div></div>
+            <div class="sc"><div><div class="sc-clinic">العظمية</div><div class="sc-wait">بالانتظار 0</div></div><div class="sc-num tabular">—</div></div>
+        </div>
+        <div class="ticker">مرحباً بكم في مشفى شفق — يرجى الانتظار حتى يتم مناداة رقمكم</div>
+    </div>
+</div>
+</body>
+</html>

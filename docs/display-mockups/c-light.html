@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="common.css">
+<style>
+body {
+    background: #F4F6F8;
+    color: var(--ink);
+    display: flex; flex-direction: column;
+    padding: 0 0 26px;
+}
+header {
+    background: #fff;
+    border-bottom: 4px solid var(--orange);
+    padding: 22px 44px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex: none;
+}
+.brand { display: flex; align-items: center; gap: 16px; font-size: 34px; font-weight: 900; }
+.clock { font-size: 30px; color: var(--muted); }
+.clock b { color: var(--ink); font-weight: 800; }
+
+.body { flex: 1 1 auto; display: grid; grid-template-columns: 1.35fr 1fr; gap: 26px; padding: 26px 44px; min-height: 0; }
+
+.now {
+    background: #fff;
+    border-radius: 26px;
+    border: 1px solid var(--line);
+    border-top: 8px solid var(--navy);
+    box-shadow: 0 18px 44px rgba(18,59,94,.10);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center;
+    padding: 40px;
+}
+.now-label { font-size: 34px; color: var(--muted); font-weight: 600; }
+.now-num {
+    font-size: 230px; font-weight: 900; line-height: .95;
+    color: var(--navy); letter-spacing: -4px; margin: 12px 0 6px;
+}
+.now-clinic { font-size: 60px; font-weight: 800; color: var(--orange); }
+.now-status {
+    margin-top: 22px; font-size: 30px; font-weight: 700;
+    background: rgba(31,138,95,.14); color: #1F8A5F;
+    padding: 12px 32px; border-radius: 999px;
+}
+
+.recent {
+    background: #fff;
+    border-radius: 26px;
+    border: 1px solid var(--line);
+    padding: 26px 28px;
+    display: flex; flex-direction: column; gap: 14px;
+    min-height: 0;
+}
+.recent h2 { font-size: 30px; color: var(--muted); font-weight: 700; }
+.row {
+    display: flex; align-items: center; gap: 18px;
+    background: #F8FAFB;
+    border: 1px solid var(--line);
+    border-inline-start: 6px solid #2C7BA6;
+    border-radius: 14px;
+    padding: 16px 20px;
+}
+.row.recall { border-inline-start-color: var(--orange); }
+.row-no { font-size: 46px; font-weight: 900; min-width: 4.5ch; color: var(--navy); }
+.row-meta { flex: 1 1 auto; }
+.row-clinic { font-size: 28px; font-weight: 700; }
+.row-status { font-size: 22px; color: var(--muted); }
+.row-time { font-size: 24px; color: var(--muted); }
+
+.ticker {
+    margin: 0 44px;
+    height: 68px; flex: none;
+    border-radius: 16px;
+    background: var(--navy);
+    color: #fff;
+    display: flex; align-items: center; padding: 0 30px;
+    font-size: 27px; font-weight: 600;
+}
+</style>
+</head>
+<body>
+<header>
+    <div class="brand"><span class="logo-mark">ش</span> مشفى شفق — قسم العيادات</div>
+    <div class="clock tabular">السبت، 2 ربيع الأول 1448 — <b>16:10</b></div>
+</header>
+
+<div class="body">
+    <section class="now">
+        <div class="now-label">الرجاء من صاحب الرقم</div>
+        <div class="now-num tabular">B-001</div>
+        <div class="now-clinic">عيادة الأطفال</div>
+        <div class="now-status">قيد الخدمة</div>
+    </section>
+
+    <section class="recent">
+        <h2>آخر النداءات</h2>
+        <div class="row recall">
+            <div class="row-no tabular">A-014</div>
+            <div class="row-meta"><div class="row-clinic">الباطنية</div><div class="row-status">إعادة نداء</div></div>
+            <div class="row-time tabular">16:08</div>
+        </div>
+        <div class="row">
+            <div class="row-no tabular">L-007</div>
+            <div class="row-meta"><div class="row-clinic">المختبر</div><div class="row-status">قيد الخدمة</div></div>
+            <div class="row-time tabular">16:05</div>
+        </div>
+        <div class="row">
+            <div class="row-no tabular">A-013</div>
+            <div class="row-meta"><div class="row-clinic">الباطنية</div><div class="row-status">انتهت الخدمة</div></div>
+            <div class="row-time tabular">16:01</div>
+        </div>
+        <div class="row">
+            <div class="row-no tabular">B-012</div>
+            <div class="row-meta"><div class="row-clinic">الأطفال</div><div class="row-status">لم يحضر</div></div>
+            <div class="row-time tabular">15:57</div>
+        </div>
+        <div class="row">
+            <div class="row-no tabular">L-006</div>
+            <div class="row-meta"><div class="row-clinic">المختبر</div><div class="row-status">انتهت الخدمة</div></div>
+            <div class="row-time tabular">15:52</div>
+        </div>
+    </section>
+</div>
+
+<div class="ticker">مرحباً بكم في مشفى شفق — يرجى الانتظار حتى يتم مناداة رقمكم، والحفاظ على هدوء صالة الانتظار</div>
+</body>
+</html>
