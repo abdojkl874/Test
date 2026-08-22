@@ -59,6 +59,8 @@ public static class SeedData
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "LogoDataUrl" text NULL;
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "BrandPrimaryColor" text NULL;
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "BrandAccentColor" text NULL;
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "KioskDeviceKey" text NULL;
+            ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "DisplayDeviceKey" text NULL;
             ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "EmployeeCode";
 
             -- Counters were dropped in favour of clinics alone: sessions are now

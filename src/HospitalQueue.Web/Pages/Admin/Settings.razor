@@ -7,6 +7,8 @@
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext Db
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
 @inject HospitalQueue.Web.Services.BrandingService Branding
 
 <PageTitle>الإعدادات العامة</PageTitle>
@@ -94,6 +96,33 @@
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveScreenPasswordsAsync">حفظ كلمات السر</MudButton>
     </MudPaper>
+
+    <MudPaper Class="pa-5 mt-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg); max-width:620px;">
+        <MudText Typo="Typo.subtitle1" Class="mb-1">مفاتيح الأجهزة المخصّصة</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+            الجهاز الذي يفتح الرابط ومعه مفتاحه يدخل الشاشة مباشرة بلا كلمة سر — مخصّص لشاشة جدارية أو جهاز كشك لا لوحة مفاتيح له.
+            انسخ الرابط كاملاً إلى تطبيق الأندرويد أو إلى صفحة البدء في المتصفح.
+            <b>توليد مفتاح جديد يُبطل المفتاح القديم فوراً على كل الأجهزة.</b>
+        </MudText>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">شاشة العرض</MudText>
+        <MudTextField T="string" Value="@DeviceUrl(settings.DisplayDeviceKey, "display")" ReadOnly="true"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1"
+                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                      OnAdornmentClick="@(() => CopyAsync(DeviceUrl(settings.DisplayDeviceKey, "display")))" />
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning" Class="mb-4"
+                   StartIcon="@Icons.Material.Filled.Autorenew"
+                   OnClick="@(() => RegenerateKeyAsync(isKiosk: false))">توليد مفتاح جديد لشاشة العرض</MudButton>
+
+        <MudText Typo="Typo.subtitle2" Class="mb-1">شاشة الكشك</MudText>
+        <MudTextField T="string" Value="@DeviceUrl(settings.KioskDeviceKey, "kiosk")" ReadOnly="true"
+                      Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1"
+                      Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.ContentCopy"
+                      OnAdornmentClick="@(() => CopyAsync(DeviceUrl(settings.KioskDeviceKey, "kiosk")))" />
+        <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Warning"
+                   StartIcon="@Icons.Material.Filled.Autorenew"
+                   OnClick="@(() => RegenerateKeyAsync(isKiosk: true))">توليد مفتاح جديد لشاشة الكشك</MudButton>
+    </MudPaper>
 }
 
 @code {
@@ -110,6 +139,57 @@
         settings = await Db.OrganizationSettings.FirstOrDefaultAsync();
         hasKioskPassword = !string.IsNullOrEmpty(settings?.KioskPasswordHash);
         hasDisplayPassword = !string.IsNullOrEmpty(settings?.DisplayPasswordHash);
+
+        // Mint the keys on first visit so there is always a link ready to copy.
+        if (settings is not null &&
+            (string.IsNullOrEmpty(settings.KioskDeviceKey) || string.IsNullOrEmpty(settings.DisplayDeviceKey)))
+        {
+            settings.KioskDeviceKey ??= DeviceKey.Generate();
+            settings.DisplayDeviceKey ??= DeviceKey.Generate();
+            await Db.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>The full address a dedicated device should open, key included.</summary>
+    private string DeviceUrl(string? key, string screen)
+    {
+        var origin = new Uri(Navigation.BaseUri).GetLeftPart(UriPartial.Authority);
+        return string.IsNullOrEmpty(key) ? "—" : $"{origin}/{screen}?key={key}";
+    }
+
+    private async Task CopyAsync(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add("تم نسخ الرابط", Severity.Success);
+        }
+        catch
+        {
+            // Clipboard access needs a secure context; over plain HTTP the admin
+            // can still select the field and copy by hand.
+            Snackbar.Add("تعذّر النسخ تلقائياً — حدّد النص وانسخه يدوياً", Severity.Info);
+        }
+    }
+
+    private async Task RegenerateKeyAsync(bool isKiosk)
+    {
+        if (settings is null)
+        {
+            return;
+        }
+
+        if (isKiosk)
+        {
+            settings.KioskDeviceKey = DeviceKey.Generate();
+        }
+        else
+        {
+            settings.DisplayDeviceKey = DeviceKey.Generate();
+        }
+
+        await Db.SaveChangesAsync();
+        Snackbar.Add("تم توليد مفتاح جديد — حدّث الرابط على الأجهزة", Severity.Warning);
     }
 
     private async Task SaveAsync()

@@ -29,6 +29,16 @@
         android:inputType="textUri"
         android:textDirection="ltr"
         android:importantForAutofill="no"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/keyInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/settings_key_hint"
+        android:inputType="text"
+        android:textDirection="ltr"
+        android:importantForAutofill="no"
         android:layout_marginBottom="24dp" />
 
     <Button

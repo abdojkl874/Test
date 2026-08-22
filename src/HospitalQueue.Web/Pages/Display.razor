@@ -11,7 +11,7 @@
 
 <PageTitle>شاشة العرض</PageTitle>
 
-<ScreenPasswordGate Title="شاشة العرض" PasswordHash="@displayPasswordHash">
+<ScreenPasswordGate Title="شاشة العرض" PasswordHash="@displayPasswordHash" DeviceKey="@displayDeviceKey">
     <div class="hq-display-shell">
         <div class="hq-display-header">
             <div class="hq-display-brand">
@@ -79,6 +79,7 @@
     private bool tickerEnabled;
     private string? tickerText;
     private string? displayPasswordHash;
+    private string? displayDeviceKey;
     private DateTime clock = DateTime.Now;
     private DateOnly boardDate = DateOnly.FromDateTime(DateTime.Now);
     private readonly System.Globalization.CultureInfo arabicCulture = new("ar-SA");
@@ -95,6 +96,7 @@
             tickerEnabled = settings.TickerEnabled;
             tickerText = settings.TickerText;
             displayPasswordHash = settings.DisplayPasswordHash;
+            displayDeviceKey = settings.DisplayDeviceKey;
         }
 
         var recentEvents = await QueueService.GetRecentlyCalledAsync(15);

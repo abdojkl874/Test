@@ -17,6 +17,7 @@ class SettingsActivity : AppCompatActivity() {
 
         val prefs = Prefs(this)
         binding.urlInput.setText(prefs.serverUrl ?: "")
+        binding.keyInput.setText(prefs.deviceKey ?: "")
 
         binding.saveButton.setOnClickListener {
             val entered = binding.urlInput.text?.toString()?.trim().orEmpty()
@@ -26,6 +27,7 @@ class SettingsActivity : AppCompatActivity() {
             }
 
             prefs.serverUrl = entered
+            prefs.deviceKey = binding.keyInput.text?.toString()?.trim()
             Toast.makeText(this, getString(R.string.settings_saved, prefs.displayUrl()), Toast.LENGTH_LONG).show()
             finish()
         }

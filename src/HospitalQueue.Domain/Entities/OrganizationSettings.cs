@@ -14,6 +14,17 @@ public class OrganizationSettings
     /// <summary>Hashed shared password gating /display. Null = screen not yet configured, access blocked.</summary>
     public string? DisplayPasswordHash { get; set; }
 
+    /// <summary>
+    /// Bearer token that lets a dedicated device open /kiosk without the password
+    /// prompt (see ScreenPasswordGate). Stored in the clear because the admin has
+    /// to read it back to copy it into the device; regenerating it revokes every
+    /// device holding the old one.
+    /// </summary>
+    public string? KioskDeviceKey { get; set; }
+
+    /// <summary>Same as <see cref="KioskDeviceKey"/>, for /display.</summary>
+    public string? DisplayDeviceKey { get; set; }
+
     /// <summary>Organization logo as a data: URI, shown on the login, admin, kiosk and display screens.</summary>
     public string? LogoDataUrl { get; set; }
 
