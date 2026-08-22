@@ -11,52 +11,91 @@
 
 <MudText Typo="Typo.h4" Class="hq-page-title">الخدمات والعيادات</MudText>
 
-<MudPaper Class="pa-4 mb-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
-    <MudText Typo="Typo.subtitle1" Class="mb-3">إضافة خدمة/عيادة جديدة</MudText>
-    <MudGrid>
-        <MudItem xs="12" sm="5">
-            <MudTextField @bind-Value="newName" Label="الاسم" Variant="Variant.Outlined" Placeholder="مثال: الباطنية" />
-        </MudItem>
-        <MudItem xs="12" sm="3">
-            <MudTextField @bind-Value="newCode" Label="الرمز" Variant="Variant.Outlined" MaxLength="10" HelperText="يستخدم في رقم التذكرة، مثال A" />
-        </MudItem>
-        <MudItem xs="12" sm="4">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddAsync" StartIcon="@Icons.Material.Filled.Add">إضافة</MudButton>
-        </MudItem>
-    </MudGrid>
-</MudPaper>
-
+@* Same shape as the users screen: a read-only listing, with creating and
+   editing both behind one dialog. *@
 <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
     <MudTable Items="services" Dense="true" Hover="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.subtitle1">قائمة العيادات</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreate"
+                       StartIcon="@Icons.Material.Filled.Add">إضافة عيادة</MudButton>
+        </ToolBarContent>
         <HeaderContent>
             <MudTh>الاسم</MudTh>
             <MudTh>الرمز</MudTh>
             <MudTh>الترتيب</MudTh>
             <MudTh>الحالة</MudTh>
-            <MudTh></MudTh>
+            <MudTh Style="width:1%;"></MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="الاسم"><MudTextField T="string" @bind-Value="context.NameAr" Variant="Variant.Text" /></MudTd>
-            <MudTd DataLabel="الرمز"><MudTextField T="string" @bind-Value="context.Code" Variant="Variant.Text" MaxLength="10" Style="width:80px;" /></MudTd>
-            <MudTd DataLabel="الترتيب"><MudNumericField T="int" @bind-Value="context.DisplayOrder" Variant="Variant.Text" Style="width:80px;" /></MudTd>
+            <MudTd DataLabel="الاسم">@context.NameAr</MudTd>
+            <MudTd DataLabel="الرمز">@context.Code</MudTd>
+            <MudTd DataLabel="الترتيب">@context.DisplayOrder</MudTd>
             <MudTd DataLabel="الحالة">
-                <MudChip T="string" Class="@(context.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.IsActive ? "مفعّلة" : "معطّلة")</MudChip>
+                <MudChip T="string" Size="Size.Small" Class="@(context.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">
+                    @(context.IsActive ? "مفعّلة" : "معطّلة")
+                </MudChip>
             </MudTd>
             <MudTd>
-                <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary" OnClick="() => SaveAsync(context)" Class="me-2">حفظ</MudButton>
-                <MudButton Size="Size.Small" Variant="Variant.Filled" Color="@(context.IsActive ? Color.Error : Color.Success)" OnClick="() => ToggleActiveAsync(context)">
-                    @(context.IsActive ? "تعطيل" : "تفعيل")
-                </MudButton>
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => OpenEdit(context)" title="إعدادات العيادة" />
             </MudTd>
         </RowTemplate>
     </MudTable>
-    <MudText Typo="Typo.caption" Class="mt-3" Style="color:var(--hq-muted);">يتم تعطيل الخدمة بدلاً من حذفها للحفاظ على سجل التذاكر السابقة.</MudText>
+    <MudText Typo="Typo.caption" Class="mt-3" Style="color:var(--hq-muted);">يتم تعطيل العيادة بدلاً من حذفها للحفاظ على سجل التذاكر السابقة.</MudText>
 </MudPaper>
+
+<MudDialog @bind-Visible="dialogVisible" Options="dialogOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(isNew ? Icons.Material.Filled.Add : Icons.Material.Filled.LocalHospital)" Class="me-2" />
+            @(isNew ? "إضافة عيادة جديدة" : $"إعدادات العيادة — {editing?.NameAr}")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudTextField @bind-Value="editName" Label="الاسم" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      Placeholder="مثال: الباطنية" Class="mb-3" />
+
+        <MudTextField @bind-Value="editCode" Label="الرمز" Variant="Variant.Outlined" Margin="Margin.Dense"
+                      MaxLength="10" HelperText="يستخدم في رقم التذكرة، مثال A ‏→‏ A-014" Class="mb-3" />
+
+        <MudNumericField T="int" @bind-Value="editDisplayOrder" Label="الترتيب في شاشة الكشك"
+                         Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" Class="mb-3" />
+
+        @if (!isNew)
+        {
+            <MudDivider Class="mb-3" />
+            <MudSwitch @bind-Value="editIsActive" Color="Color.Success"
+                       Label="@(editIsActive ? "العيادة مفعّلة" : "العيادة معطّلة")" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseDialog">إلغاء</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync"
+                   StartIcon="@(isNew ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)">
+            @(isNew ? "إضافة" : "حفظ")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
     private List<Service> services = new();
-    private string newName = string.Empty;
-    private string newCode = string.Empty;
+
+    private bool dialogVisible;
+    private bool isNew;
+    private Service? editing;
+    private string editName = string.Empty;
+    private string editCode = string.Empty;
+    private int editDisplayOrder;
+    private bool editIsActive = true;
+
+    private readonly DialogOptions dialogOptions = new()
+    {
+        MaxWidth = MaxWidth.ExtraSmall,
+        FullWidth = true,
+        CloseButton = true,
+    };
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -65,59 +104,85 @@
         services = await Db.Services.OrderBy(s => s.DisplayOrder).ToListAsync();
     }
 
-    private async Task AddAsync()
+    private void OpenCreate()
     {
-        if (string.IsNullOrWhiteSpace(newName) || string.IsNullOrWhiteSpace(newCode))
+        isNew = true;
+        editing = null;
+        editName = string.Empty;
+        editCode = string.Empty;
+        editDisplayOrder = services.Count;
+        editIsActive = true;
+        dialogVisible = true;
+    }
+
+    private void OpenEdit(Service service)
+    {
+        isNew = false;
+        editing = service;
+        editName = service.NameAr;
+        editCode = service.Code;
+        editDisplayOrder = service.DisplayOrder;
+        editIsActive = service.IsActive;
+        dialogVisible = true;
+    }
+
+    private void CloseDialog()
+    {
+        dialogVisible = false;
+        editing = null;
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(editName) || string.IsNullOrWhiteSpace(editCode))
         {
             Snackbar.Add("الرجاء إدخال الاسم والرمز", Severity.Warning);
             return;
         }
 
-        if (await Db.Services.AnyAsync(s => s.Code == newCode))
+        var name = editName.Trim();
+        var code = editCode.Trim().ToUpperInvariant();
+
+        // The code drives ticket numbers, so it has to stay unique — excluding
+        // the row being edited from the check.
+        var editingId = editing?.Id;
+        if (await Db.Services.AnyAsync(s => s.Code == code && s.Id != editingId))
         {
             Snackbar.Add("هذا الرمز مستخدم مسبقاً", Severity.Warning);
             return;
         }
 
-        Db.Services.Add(new Service
+        if (isNew)
         {
-            Id = Guid.NewGuid(),
-            NameAr = newName.Trim(),
-            Code = newCode.Trim().ToUpperInvariant(),
-            DisplayOrder = services.Count,
-            IsActive = true,
-        });
+            Db.Services.Add(new Service
+            {
+                Id = Guid.NewGuid(),
+                NameAr = name,
+                Code = code,
+                DisplayOrder = editDisplayOrder,
+                IsActive = true,
+            });
+        }
+        else if (editing is not null)
+        {
+            editing.NameAr = name;
+            editing.Code = code;
+            editing.DisplayOrder = editDisplayOrder;
+            editing.IsActive = editIsActive;
+        }
 
         try
         {
             await Db.SaveChangesAsync();
-            newName = string.Empty;
-            newCode = string.Empty;
-            await LoadAsync();
-            Snackbar.Add("تمت الإضافة", Severity.Success);
         }
         catch (DbUpdateException)
         {
-            Snackbar.Add("تعذر حفظ الخدمة، تأكد من عدم تكرار الرمز", Severity.Error);
+            Snackbar.Add("تعذر حفظ العيادة، تأكد من عدم تكرار الرمز", Severity.Error);
+            return;
         }
-    }
 
-    private async Task SaveAsync(Service service)
-    {
-        try
-        {
-            await Db.SaveChangesAsync();
-            Snackbar.Add("تم الحفظ", Severity.Success);
-        }
-        catch (DbUpdateException)
-        {
-            Snackbar.Add("تعذر حفظ التعديلات", Severity.Error);
-        }
-    }
-
-    private async Task ToggleActiveAsync(Service service)
-    {
-        service.IsActive = !service.IsActive;
-        await Db.SaveChangesAsync();
+        Snackbar.Add(isNew ? "تمت الإضافة" : "تم الحفظ", Severity.Success);
+        CloseDialog();
+        await LoadAsync();
     }
 }

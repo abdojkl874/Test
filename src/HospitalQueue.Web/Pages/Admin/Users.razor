@@ -12,16 +12,20 @@
 
 <PageTitle>المستخدمون</PageTitle>
 
-<div class="hq-page-head">
-    <MudText Typo="Typo.h4" Class="hq-page-title">المستخدمون</MudText>
-    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreate"
-               StartIcon="@Icons.Material.Filled.PersonAdd">إضافة مستخدم</MudButton>
-</div>
+<MudText Typo="Typo.h4" Class="hq-page-title">المستخدمون</MudText>
 
 @* The table stays read-only at a glance; creating and editing both happen in
-   the same dialog so a row is one line instead of a strip of controls. *@
+   the same dialog so a row is one line instead of a strip of controls. The
+   add button lives in the table's own toolbar so it can't be separated from
+   the table by page-level layout. *@
 <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
     <MudTable Items="userRows" Dense="true" Hover="true">
+        <ToolBarContent>
+            <MudText Typo="Typo.subtitle1">قائمة الحسابات</MudText>
+            <MudSpacer />
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreate"
+                       StartIcon="@Icons.Material.Filled.PersonAdd">إضافة مستخدم</MudButton>
+        </ToolBarContent>
         <HeaderContent>
             <MudTh>اسم المستخدم</MudTh>
             <MudTh>الاسم الكامل</MudTh>
