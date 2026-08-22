@@ -189,83 +189,6 @@ html, body {
 }
 .hq-alert-error { background: #FBEAE6; color: var(--hq-danger); }
 
-/* ---------- Device PIN login (kiosk / display) ---------- */
-.hq-pin-card {
-    background: var(--hq-surface);
-    width: 100%;
-    max-width: 440px;
-    border-radius: var(--hq-radius-lg);
-    box-shadow: var(--hq-shadow-lg);
-    padding: 2.1rem 2.3rem;
-    position: relative;
-    overflow: hidden;
-    text-align: center;
-}
-.hq-pin-card::before {
-    content: '';
-    position: absolute;
-    top: 0; inset-inline: 0;
-    height: 4px;
-    background: linear-gradient(90deg, var(--hq-primary), var(--hq-accent));
-}
-.hq-pin-accounts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .6rem;
-    justify-content: center;
-    margin: 1rem 0 1.4rem;
-}
-.hq-pin-account-btn {
-    padding: .6rem 1.2rem;
-    border-radius: 999px;
-    border: 1px solid var(--hq-divider);
-    background: #fff;
-    font-family: inherit;
-    font-weight: 600;
-    font-size: .95rem;
-    cursor: pointer;
-}
-.hq-pin-account-btn.selected {
-    background: var(--hq-primary);
-    border-color: var(--hq-primary);
-    color: #fff;
-}
-.hq-pin-dots {
-    display: flex;
-    justify-content: center;
-    gap: .7rem;
-    margin-bottom: 1.4rem;
-}
-.hq-pin-dots span {
-    width: 16px; height: 16px;
-    border-radius: 50%;
-    border: 2px solid var(--hq-divider);
-    background: transparent;
-}
-.hq-pin-dots span.filled {
-    background: var(--hq-primary);
-    border-color: var(--hq-primary);
-}
-.hq-pin-keypad {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: .7rem;
-}
-.hq-pin-key {
-    padding: 1rem;
-    border-radius: var(--hq-radius);
-    border: 1px solid var(--hq-divider);
-    background: #fff;
-    font-family: inherit;
-    font-size: 1.3rem;
-    font-weight: 700;
-    cursor: pointer;
-}
-.hq-pin-key:hover { background: var(--hq-bg); }
-.hq-pin-key-muted { font-size: .95rem; color: var(--hq-muted); }
-.hq-pin-key-submit { background: var(--hq-primary); color: #fff; border-color: var(--hq-primary); font-size: 1.05rem; }
-.hq-pin-key-submit:hover { background: var(--hq-primary-dark); }
-
 /* ---------- Sidebar (admin) ---------- */
 .hq-drawer-brand {
     display: flex; align-items: center; gap: .7rem;
@@ -772,33 +695,6 @@ html, body {
     align-items: center;
     justify-content: center;
     gap: .3rem;
-}
-
-/* ---------- Users table ---------- */
-.hq-users-table table {
-    border-collapse: separate;
-    border-spacing: 0 6px;
-}
-.hq-users-table td, .hq-users-table th {
-    vertical-align: middle;
-}
-.hq-users-name-field {
-    min-width: 160px;
-}
-.hq-users-role-select {
-    min-width: 160px;
-}
-.hq-users-clinics-select {
-    min-width: 190px;
-}
-.hq-users-actions {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: .5rem;
-}
-.hq-users-password-field {
-    min-width: 160px;
 }
 
 /* ---------- Branding settings ---------- */

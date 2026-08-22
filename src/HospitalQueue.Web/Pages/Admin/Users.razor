@@ -41,73 +41,117 @@
     </MudGrid>
 </MudPaper>
 
+@* The table stays read-only at a glance; everything editable lives behind the
+   settings button so a row is one line instead of a strip of controls. *@
 <MudPaper Class="pa-4" Elevation="0" Style="border:1px solid var(--hq-divider); border-radius: var(--hq-radius-lg);">
-    <MudTable Items="userRows" Dense="true" Hover="true" Class="hq-users-table">
+    <MudTable Items="userRows" Dense="true" Hover="true">
         <HeaderContent>
             <MudTh>اسم المستخدم</MudTh>
             <MudTh>الاسم الكامل</MudTh>
             <MudTh>الدور</MudTh>
             <MudTh>العيادات المخصّصة</MudTh>
             <MudTh>الحالة</MudTh>
-            <MudTh></MudTh>
+            <MudTh Style="width:1%;"></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="اسم المستخدم">@context.User.UserName</MudTd>
-            <MudTd DataLabel="الاسم الكامل">
-                <MudTextField T="string" @bind-Value="context.EditFullName" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-name-field" />
-            </MudTd>
+            <MudTd DataLabel="الاسم الكامل">@context.User.FullName</MudTd>
             <MudTd DataLabel="الدور">
-                <MudSelect T="string" Value="@(context.Roles.FirstOrDefault() ?? string.Empty)" ValueChanged="@(v => SetUserRoleAsync(context, v))"
-                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-role-select">
-                    <MudSelectItem Value="@string.Empty">بدون دور</MudSelectItem>
-                    @foreach (var role in AppRoles.All)
-                    {
-                        <MudSelectItem Value="@role">@RoleLabel(role)</MudSelectItem>
-                    }
-                </MudSelect>
+                @if (context.Roles.Any())
+                {
+                    <MudChip T="string" Size="Size.Small">@RoleLabel(context.Roles[0])</MudChip>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">بدون دور</MudText>
+                }
             </MudTd>
-            @* Shown for every account, not just ones currently in the employee
-               role: the role can be changed after the fact, and hiding the
-               picker made existing accounts look unassignable. *@
             <MudTd DataLabel="العيادات المخصّصة">
-                <MudSelect T="Guid" MultiSelection="true"
-                           SelectedValues="@context.ServiceIds"
-                           SelectedValuesChanged="@(v => SetEmployeeServicesAsync(context, v))"
-                           MultiSelectionTextFunc="@(selected => ServiceNamesText(selected))"
-                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-clinics-select"
-                           AnchorOrigin="Origin.BottomCenter" Disabled="!allServices.Any()">
-                    @foreach (var service in allServices)
-                    {
-                        <MudSelectItem T="Guid" Value="@service.Id">@service.NameAr</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudText Typo="Typo.body2">@AssignedClinicsText(context)</MudText>
             </MudTd>
             <MudTd DataLabel="الحالة">
-                <MudChip T="string" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.User.IsActive ? "مفعّل" : "معطّل")</MudChip>
+                <MudChip T="string" Size="Size.Small" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">
+                    @(context.User.IsActive ? "مفعّل" : "معطّل")
+                </MudChip>
             </MudTd>
             <MudTd>
-                <div class="hq-users-actions">
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="() => SaveUserInfoAsync(context)">حفظ</MudButton>
-                    <MudButton Size="Size.Small" Variant="Variant.Filled" Color="@(context.User.IsActive ? Color.Error : Color.Success)" OnClick="() => ToggleActiveAsync(context)">
-                        @(context.User.IsActive ? "تعطيل" : "تفعيل")
-                    </MudButton>
-                    <MudTextField T="string" @bind-Value="context.NewPassword" Placeholder="كلمة مرور جديدة" Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-password-field" />
-                    <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Secondary" OnClick="() => ResetPasswordAsync(context)">تصفير كلمة المرور</MudButton>
-                </div>
+                <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary"
+                               OnClick="() => OpenSettings(context)" title="إعدادات الحساب" />
             </MudTd>
         </RowTemplate>
     </MudTable>
 </MudPaper>
+
+<MudDialog @bind-Visible="settingsVisible" Options="settingsOptions">
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.ManageAccounts" Class="me-2" />
+            إعدادات الحساب — @editing?.User.UserName
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        @if (editing is not null)
+        {
+            <MudTextField @bind-Value="editFullName" Label="الاسم الكامل" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+            <MudSelect T="string" @bind-Value="editRole" Label="الدور / نوع الشاشة" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3">
+                <MudSelectItem Value="@string.Empty">بدون دور</MudSelectItem>
+                @foreach (var role in AppRoles.All)
+                {
+                    <MudSelectItem Value="@role">@RoleLabel(role)</MudSelectItem>
+                }
+            </MudSelect>
+
+            @* Only the two roles that actually open the call screen can be
+               restricted to particular clinics; the kiosk and display screens
+               have no clinic of their own. *@
+            <MudSelect T="Guid" MultiSelection="true"
+                       Label="العيادات المخصّصة"
+                       SelectedValues="@editServiceIds"
+                       SelectedValuesChanged="@(v => editServiceIds = v.ToHashSet())"
+                       MultiSelectionTextFunc="@(selected => ServiceNamesText(selected))"
+                       Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-1"
+                       AnchorOrigin="Origin.BottomCenter"
+                       Disabled="!ClinicsApplyToRole(editRole) || !allServices.Any()">
+                @foreach (var service in allServices)
+                {
+                    <MudSelectItem T="Guid" Value="@service.Id">@service.NameAr</MudSelectItem>
+                }
+            </MudSelect>
+            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="d-block mb-3">
+                @if (!ClinicsApplyToRole(editRole))
+                {
+                    <text>تخصيص العيادات متاح لحسابات الموظف والمدير فقط.</text>
+                }
+                else
+                {
+                    <text>اترك الاختيار فارغاً للسماح بكل العيادات.</text>
+                }
+            </MudText>
+
+            <MudDivider Class="mb-3" />
+
+            <MudTextField @bind-Value="editNewPassword" Label="كلمة مرور جديدة (اتركها فارغة لعدم التغيير)"
+                          InputType="InputType.Password" Variant="Variant.Outlined" Margin="Margin.Dense" Class="mb-3" />
+
+            <MudSwitch @bind-Value="editIsActive" Color="Color.Success"
+                       Label="@(editIsActive ? "الحساب مفعّل" : "الحساب معطّل")" />
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="CloseSettings">إلغاء</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveSettingsAsync"
+                   StartIcon="@Icons.Material.Filled.Save">حفظ</MudButton>
+    </DialogActions>
+</MudDialog>
 
 @code {
     private class UserRow
     {
         public ApplicationUser User { get; set; } = null!;
         public List<string> Roles { get; set; } = new();
-        public string? NewPassword { get; set; }
-        public string EditFullName { get; set; } = string.Empty;
 
-        /// <summary>Clinics this employee may work; empty means unrestricted.</summary>
+        /// <summary>Clinics this account may work; empty means unrestricted.</summary>
         public HashSet<Guid> ServiceIds { get; set; } = new();
     }
 
@@ -117,6 +161,21 @@
     private string newFullName = string.Empty;
     private string newPassword = string.Empty;
     private string newRole = string.Empty;
+
+    private UserRow? editing;
+    private bool settingsVisible;
+    private string editFullName = string.Empty;
+    private string editRole = string.Empty;
+    private HashSet<Guid> editServiceIds = new();
+    private string editNewPassword = string.Empty;
+    private bool editIsActive = true;
+
+    private readonly DialogOptions settingsOptions = new()
+    {
+        MaxWidth = MaxWidth.ExtraSmall,
+        FullWidth = true,
+        CloseButton = true,
+    };
 
     protected override async Task OnInitializedAsync() => await LoadAsync();
 
@@ -133,10 +192,24 @@
             {
                 User = user,
                 Roles = roles.ToList(),
-                EditFullName = user.FullName,
                 ServiceIds = assignments.Where(a => a.EmployeeId == user.Id).Select(a => a.ServiceId).ToHashSet(),
             });
         }
+    }
+
+    /// <summary>Kiosk and display accounts never open the call screen, so a clinic assignment would mean nothing for them.</summary>
+    private static bool ClinicsApplyToRole(string role) =>
+        role is AppRoles.Employee or AppRoles.Admin;
+
+    private string AssignedClinicsText(UserRow row)
+    {
+        if (!ClinicsApplyToRole(row.Roles.FirstOrDefault() ?? string.Empty))
+        {
+            return "—";
+        }
+
+        var names = allServices.Where(s => row.ServiceIds.Contains(s.Id)).Select(s => s.NameAr).ToList();
+        return names.Count == 0 ? "كل العيادات" : string.Join("، ", names);
     }
 
     private string ServiceNamesText(List<string> selectedValues)
@@ -152,10 +225,92 @@
         return names.Count == 0 ? "كل العيادات" : string.Join("، ", names);
     }
 
-    private async Task SetEmployeeServicesAsync(UserRow row, IEnumerable<Guid> selected)
+    private void OpenSettings(UserRow row)
     {
-        var target = selected.ToHashSet();
+        editing = row;
+        editFullName = row.User.FullName;
+        editRole = row.Roles.FirstOrDefault() ?? string.Empty;
+        editServiceIds = new HashSet<Guid>(row.ServiceIds);
+        editNewPassword = string.Empty;
+        editIsActive = row.User.IsActive;
+        settingsVisible = true;
+    }
 
+    private void CloseSettings()
+    {
+        settingsVisible = false;
+        editing = null;
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        if (editing is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(editFullName))
+        {
+            Snackbar.Add("الرجاء إدخال الاسم الكامل", Severity.Warning);
+            return;
+        }
+
+        var row = editing;
+
+        row.User.FullName = editFullName.Trim();
+        row.User.IsActive = editIsActive;
+        var update = await UserManager.UpdateAsync(row.User);
+        if (!update.Succeeded)
+        {
+            Snackbar.Add(string.Join("، ", update.Errors.Select(e => e.Description)), Severity.Error);
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(editNewPassword))
+        {
+            var token = await UserManager.GeneratePasswordResetTokenAsync(row.User);
+            var reset = await UserManager.ResetPasswordAsync(row.User, token, editNewPassword);
+            if (!reset.Succeeded)
+            {
+                Snackbar.Add(string.Join("، ", reset.Errors.Select(e => e.Description)), Severity.Error);
+                return;
+            }
+        }
+
+        await ApplyRoleAsync(row, editRole);
+
+        // A role that can't work a clinic keeps no assignment at all, so the
+        // rows don't linger and silently apply if the role changes back.
+        await ApplyClinicsAsync(row, ClinicsApplyToRole(editRole) ? editServiceIds : new HashSet<Guid>());
+
+        Snackbar.Add($"تم حفظ إعدادات {row.User.UserName}", Severity.Success);
+        CloseSettings();
+    }
+
+    private async Task ApplyRoleAsync(UserRow row, string role)
+    {
+        // Every account may hold exactly one role, so switching roles clears
+        // whatever was assigned before adding the new one.
+        if (row.Roles.SequenceEqual(string.IsNullOrEmpty(role) ? Array.Empty<string>() : new[] { role }))
+        {
+            return;
+        }
+
+        if (row.Roles.Count > 0)
+        {
+            await UserManager.RemoveFromRolesAsync(row.User, row.Roles);
+            row.Roles.Clear();
+        }
+
+        if (!string.IsNullOrEmpty(role))
+        {
+            await UserManager.AddToRoleAsync(row.User, role);
+            row.Roles.Add(role);
+        }
+    }
+
+    private async Task ApplyClinicsAsync(UserRow row, HashSet<Guid> target)
+    {
         var existing = await Db.EmployeeServices.Where(es => es.EmployeeId == row.User.Id).ToListAsync();
         Db.EmployeeServices.RemoveRange(existing.Where(es => !target.Contains(es.ServiceId)));
 
@@ -202,68 +357,6 @@
         newPassword = string.Empty;
         newRole = string.Empty;
         await LoadAsync();
-    }
-
-    private async Task SetUserRoleAsync(UserRow row, string role)
-    {
-        // Every account may hold exactly one role, so switching roles clears
-        // whatever was assigned before adding the new one.
-        if (row.Roles.Count > 0)
-        {
-            await UserManager.RemoveFromRolesAsync(row.User, row.Roles);
-            row.Roles.Clear();
-        }
-
-        if (!string.IsNullOrEmpty(role))
-        {
-            await UserManager.AddToRoleAsync(row.User, role);
-            row.Roles.Add(role);
-        }
-    }
-
-    private async Task SaveUserInfoAsync(UserRow row)
-    {
-        if (string.IsNullOrWhiteSpace(row.EditFullName))
-        {
-            Snackbar.Add("الرجاء إدخال الاسم الكامل", Severity.Warning);
-            return;
-        }
-
-        row.User.FullName = row.EditFullName.Trim();
-        var result = await UserManager.UpdateAsync(row.User);
-        if (!result.Succeeded)
-        {
-            Snackbar.Add(string.Join("، ", result.Errors.Select(e => e.Description)), Severity.Error);
-            return;
-        }
-
-        Snackbar.Add($"تم حفظ بيانات {row.User.UserName}", Severity.Success);
-    }
-
-    private async Task ToggleActiveAsync(UserRow row)
-    {
-        row.User.IsActive = !row.User.IsActive;
-        await UserManager.UpdateAsync(row.User);
-    }
-
-    private async Task ResetPasswordAsync(UserRow row)
-    {
-        if (string.IsNullOrWhiteSpace(row.NewPassword))
-        {
-            Snackbar.Add("الرجاء إدخال كلمة مرور جديدة", Severity.Warning);
-            return;
-        }
-
-        var token = await UserManager.GeneratePasswordResetTokenAsync(row.User);
-        var result = await UserManager.ResetPasswordAsync(row.User, token, row.NewPassword);
-        if (!result.Succeeded)
-        {
-            Snackbar.Add(string.Join("، ", result.Errors.Select(e => e.Description)), Severity.Error);
-            return;
-        }
-
-        Snackbar.Add($"تم تحديث كلمة مرور {row.User.UserName}", Severity.Success);
-        row.NewPassword = null;
     }
 
     private static string RoleLabel(string role) => role switch
