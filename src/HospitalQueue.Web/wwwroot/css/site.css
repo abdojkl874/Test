@@ -788,6 +788,9 @@ html, body {
 .hq-users-role-select {
     min-width: 160px;
 }
+.hq-users-clinics-select {
+    min-width: 190px;
+}
 .hq-users-actions {
     display: flex;
     align-items: center;

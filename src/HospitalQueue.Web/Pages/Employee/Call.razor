@@ -21,14 +21,21 @@
         <div class="hq-session-bar-fields">
             <MudSelect T="string" Label="العيادة" Value="selectedServiceId" ValueChanged="OnServiceChangedAsync"
                        Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-session-select">
-                @foreach (var service in allServices)
+                @foreach (var service in myServices)
                 {
                     <MudSelectItem Value="@service.Id.ToString()">@service.NameAr</MudSelectItem>
                 }
             </MudSelect>
         </div>
 
-        @if (activeSession is null)
+        @if (!myServices.Any())
+        {
+            <div class="hq-session-hint">
+                <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" />
+                <span>لا توجد عيادات مخصّصة لحسابك — راجع مدير النظام</span>
+            </div>
+        }
+        else if (activeSession is null)
         {
             <div class="hq-session-hint">
                 <MudIcon Icon="@Icons.Material.Filled.TouchApp" Size="Size.Small" />
@@ -122,6 +129,7 @@
 @code {
     private Guid employeeId;
     private List<Service> allServices = new();
+    private List<Service> myServices = new();
     private string selectedServiceId = string.Empty;
 
     private ServiceSession? activeSession;
@@ -180,6 +188,18 @@
         employeeId = Guid.Parse(authState.User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         allServices = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
+
+        // The clinics this employee may work. No assignment at all means
+        // unrestricted, so a freshly upgraded install keeps working until an
+        // admin actually assigns clinics (see EmployeeService). Transfers stay
+        // free to target any clinic, so they keep using allServices.
+        var assigned = await Db.EmployeeServices
+            .Where(es => es.EmployeeId == employeeId)
+            .Select(es => es.ServiceId)
+            .ToListAsync();
+        myServices = assigned.Count == 0
+            ? allServices
+            : allServices.Where(s => assigned.Contains(s.Id)).ToList();
 
         Bus.QueueChanged += OnQueueChangedAsync;
 

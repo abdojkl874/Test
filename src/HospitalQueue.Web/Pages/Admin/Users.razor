@@ -2,9 +2,12 @@
 @attribute [Authorize(Roles = AppRoles.Admin)]
 @layout AdminLayout
 @using HospitalQueue.Domain.Entities
+@using HospitalQueue.Infrastructure.Data
 @using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
 @inject UserManager<ApplicationUser> UserManager
 @inject RoleManager<ApplicationRole> RoleManager
+@inject ApplicationDbContext Db
 @inject ISnackbar Snackbar
 
 <PageTitle>المستخدمون</PageTitle>
@@ -44,6 +47,7 @@
             <MudTh>اسم المستخدم</MudTh>
             <MudTh>الاسم الكامل</MudTh>
             <MudTh>الدور</MudTh>
+            <MudTh>العيادات المخصّصة</MudTh>
             <MudTh>الحالة</MudTh>
             <MudTh></MudTh>
         </HeaderContent>
@@ -61,6 +65,26 @@
                         <MudSelectItem Value="@role">@RoleLabel(role)</MudSelectItem>
                     }
                 </MudSelect>
+            </MudTd>
+            <MudTd DataLabel="العيادات المخصّصة">
+                @if (context.Roles.Contains(AppRoles.Employee))
+                {
+                    <MudSelect T="Guid" MultiSelection="true"
+                               SelectedValues="@context.ServiceIds"
+                               SelectedValuesChanged="@(v => SetEmployeeServicesAsync(context, v))"
+                               MultiSelectionTextFunc="@(selected => ServiceNamesText(selected))"
+                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-clinics-select"
+                               AnchorOrigin="Origin.BottomCenter">
+                        @foreach (var service in allServices)
+                        {
+                            <MudSelectItem T="Guid" Value="@service.Id">@service.NameAr</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
+                }
             </MudTd>
             <MudTd DataLabel="الحالة">
                 <MudChip T="string" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.User.IsActive ? "مفعّل" : "معطّل")</MudChip>
@@ -86,9 +110,13 @@
         public List<string> Roles { get; set; } = new();
         public string? NewPassword { get; set; }
         public string EditFullName { get; set; } = string.Empty;
+
+        /// <summary>Clinics this employee may work; empty means unrestricted.</summary>
+        public HashSet<Guid> ServiceIds { get; set; } = new();
     }
 
     private List<UserRow> userRows = new();
+    private List<Service> allServices = new();
     private string newUsername = string.Empty;
     private string newFullName = string.Empty;
     private string newPassword = string.Empty;
@@ -98,6 +126,9 @@
 
     private async Task LoadAsync()
     {
+        allServices = await Db.Services.Where(s => s.IsActive).OrderBy(s => s.DisplayOrder).ToListAsync();
+        var assignments = await Db.EmployeeServices.AsNoTracking().ToListAsync();
+
         userRows.Clear();
         foreach (var user in UserManager.Users.OrderBy(u => u.UserName).ToList())
         {
@@ -107,8 +138,38 @@
                 User = user,
                 Roles = roles.ToList(),
                 EditFullName = user.FullName,
+                ServiceIds = assignments.Where(a => a.EmployeeId == user.Id).Select(a => a.ServiceId).ToHashSet(),
             });
         }
+    }
+
+    private string ServiceNamesText(List<string> selectedValues)
+    {
+        // MudSelect hands the multi-selection text function the raw string form
+        // of each selected value, so map them back to Guids to read the names.
+        var ids = selectedValues
+            .Select(v => Guid.TryParse(v, out var id) ? id : Guid.Empty)
+            .Where(id => id != Guid.Empty)
+            .ToHashSet();
+
+        var names = allServices.Where(s => ids.Contains(s.Id)).Select(s => s.NameAr).ToList();
+        return names.Count == 0 ? "كل العيادات" : string.Join("، ", names);
+    }
+
+    private async Task SetEmployeeServicesAsync(UserRow row, IEnumerable<Guid> selected)
+    {
+        var target = selected.ToHashSet();
+
+        var existing = await Db.EmployeeServices.Where(es => es.EmployeeId == row.User.Id).ToListAsync();
+        Db.EmployeeServices.RemoveRange(existing.Where(es => !target.Contains(es.ServiceId)));
+
+        foreach (var serviceId in target.Where(id => existing.All(es => es.ServiceId != id)))
+        {
+            Db.EmployeeServices.Add(new EmployeeService { EmployeeId = row.User.Id, ServiceId = serviceId });
+        }
+
+        await Db.SaveChangesAsync();
+        row.ServiceIds = target;
     }
 
     private async Task CreateAsync()

@@ -11,6 +11,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     }
 
     public DbSet<Service> Services => Set<Service>();
+    public DbSet<EmployeeService> EmployeeServices => Set<EmployeeService>();
     public DbSet<ServiceSession> ServiceSessions => Set<ServiceSession>();
     public DbSet<Ticket> Tickets => Set<Ticket>();
     public DbSet<TicketStatusHistory> TicketStatusHistories => Set<TicketStatusHistory>();
@@ -33,6 +34,19 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             b.Property(s => s.NameAr).HasMaxLength(150).IsRequired();
             b.Property(s => s.Code).HasMaxLength(10).IsRequired();
             b.HasIndex(s => s.Code).IsUnique();
+        });
+
+        builder.Entity<EmployeeService>(b =>
+        {
+            b.HasKey(es => new { es.EmployeeId, es.ServiceId });
+            b.HasOne(es => es.Employee)
+                .WithMany()
+                .HasForeignKey(es => es.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+            b.HasOne(es => es.Service)
+                .WithMany()
+                .HasForeignKey(es => es.ServiceId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ServiceSession>(b =>

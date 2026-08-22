@@ -80,6 +80,20 @@ public static class SeedData
             CREATE INDEX IF NOT EXISTS "IX_ServiceSessions_EmployeeId_EndedAt"
                 ON "ServiceSessions" ("EmployeeId", "EndedAt");
 
+            -- Which clinics each employee may work; no rows for an employee
+            -- means unrestricted.
+            CREATE TABLE IF NOT EXISTS "EmployeeServices" (
+                "EmployeeId" uuid NOT NULL,
+                "ServiceId" uuid NOT NULL,
+                CONSTRAINT "PK_EmployeeServices" PRIMARY KEY ("EmployeeId", "ServiceId"),
+                CONSTRAINT "FK_EmployeeServices_AspNetUsers_EmployeeId"
+                    FOREIGN KEY ("EmployeeId") REFERENCES "AspNetUsers" ("Id") ON DELETE CASCADE,
+                CONSTRAINT "FK_EmployeeServices_Services_ServiceId"
+                    FOREIGN KEY ("ServiceId") REFERENCES "Services" ("Id") ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS "IX_EmployeeServices_ServiceId"
+                ON "EmployeeServices" ("ServiceId");
+
             ALTER TABLE "Tickets" DROP COLUMN IF EXISTS "CounterId";
             ALTER TABLE "TicketStatusHistories" DROP COLUMN IF EXISTS "CounterId";
             DROP TABLE IF EXISTS "CounterServices";
