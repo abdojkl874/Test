@@ -44,6 +44,18 @@ html, body {
 }
 
 /* ---------- Page heading ---------- */
+/* Title on one side, the page's primary action on the other. */
+.hq-page-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.hq-page-head .hq-page-title {
+    margin-bottom: 0;
+}
 .hq-page-title {
     font-weight: 800;
     color: var(--hq-text);
