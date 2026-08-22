@@ -66,25 +66,21 @@
                     }
                 </MudSelect>
             </MudTd>
+            @* Shown for every account, not just ones currently in the employee
+               role: the role can be changed after the fact, and hiding the
+               picker made existing accounts look unassignable. *@
             <MudTd DataLabel="العيادات المخصّصة">
-                @if (context.Roles.Contains(AppRoles.Employee))
-                {
-                    <MudSelect T="Guid" MultiSelection="true"
-                               SelectedValues="@context.ServiceIds"
-                               SelectedValuesChanged="@(v => SetEmployeeServicesAsync(context, v))"
-                               MultiSelectionTextFunc="@(selected => ServiceNamesText(selected))"
-                               Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-clinics-select"
-                               AnchorOrigin="Origin.BottomCenter">
-                        @foreach (var service in allServices)
-                        {
-                            <MudSelectItem T="Guid" Value="@service.Id">@service.NameAr</MudSelectItem>
-                        }
-                    </MudSelect>
-                }
-                else
-                {
-                    <MudText Typo="Typo.caption" Color="Color.Secondary">—</MudText>
-                }
+                <MudSelect T="Guid" MultiSelection="true"
+                           SelectedValues="@context.ServiceIds"
+                           SelectedValuesChanged="@(v => SetEmployeeServicesAsync(context, v))"
+                           MultiSelectionTextFunc="@(selected => ServiceNamesText(selected))"
+                           Variant="Variant.Outlined" Margin="Margin.Dense" Class="hq-users-clinics-select"
+                           AnchorOrigin="Origin.BottomCenter" Disabled="!allServices.Any()">
+                    @foreach (var service in allServices)
+                    {
+                        <MudSelectItem T="Guid" Value="@service.Id">@service.NameAr</MudSelectItem>
+                    }
+                </MudSelect>
             </MudTd>
             <MudTd DataLabel="الحالة">
                 <MudChip T="string" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">@(context.User.IsActive ? "مفعّل" : "معطّل")</MudChip>
