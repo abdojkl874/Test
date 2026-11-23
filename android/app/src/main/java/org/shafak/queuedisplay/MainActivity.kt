@@ -85,6 +85,11 @@ class MainActivity : AppCompatActivity() {
         binding.webView.webViewClient = BoardWebViewClient()
         binding.webView.setBackgroundColor(0xFF0A1F33.toInt())
 
+        // A wall display is never scrolled by hand, so no scrollbars either.
+        binding.webView.isVerticalScrollBarEnabled = false
+        binding.webView.isHorizontalScrollBarEnabled = false
+        binding.webView.overScrollMode = View.OVER_SCROLL_NEVER
+
         // Android WebView has no Web Speech API, so the page's announcement is
         // routed to the platform's text-to-speech engine instead.
         binding.webView.addJavascriptInterface(announcer.bridge, Announcer.JS_NAME)

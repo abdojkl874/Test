@@ -462,9 +462,14 @@ html, body {
 }
 
 /* ---------- Display board ---------- */
-/* The board is a fixed, non-scrolling viewport: the header and the news
-   ticker must stay visible at all times, and only the recent-calls list
-   scrolls internally when there are more calls than fit. */
+/* The board is a fixed, non-scrolling viewport with no scrollbars at all:
+   the header and the news ticker must stay visible at all times, and when
+   there are more recent calls than fit, the oldest rows (at the bottom) are
+   simply clipped — nobody scrolls an unattended wall screen. */
+html:has(.hq-display-shell),
+body:has(.hq-display-shell) {
+    overflow: hidden;
+}
 .hq-display-shell {
     height: 100vh;
     overflow: hidden;
@@ -564,7 +569,8 @@ html, body {
     border: 1px solid rgba(255,255,255,.10);
     border-radius: var(--hq-radius-lg);
     padding: 1.3rem 1.5rem;
-    overflow-y: auto;
+    overflow: hidden;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     gap: .65rem;
@@ -577,8 +583,8 @@ html, body {
     border-inline-start: 5px solid var(--hq-info);
     border-radius: 12px;
     padding: .65rem 1rem;
-    /* Rows keep their height so the list scrolls instead of compressing
-       them into an unreadable stack when the board is full. */
+    /* Rows keep their height so the oldest ones are clipped instead of
+       compressing them into an unreadable stack when the board is full. */
     flex: 0 0 auto;
 }
 .hq-recent-row .hq-recent-no {
@@ -738,3 +744,8 @@ html, body {
 /* ---------- Misc ---------- */
 .hq-empty { text-align: center; color: var(--hq-muted); padding: 2.5rem 1rem; }
 .mud-table .mud-table-head .mud-table-cell { font-weight: 700 !important; background: #F8FAFB !important; }
+
+/* Shown under "call next" while the clinic's queue is empty. */
+.hq-no-waiting-alert {
+    margin-top: -.25rem;
+}
