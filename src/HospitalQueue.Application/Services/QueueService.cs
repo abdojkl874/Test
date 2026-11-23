@@ -130,7 +130,12 @@ public class QueueService : IQueueService
     public async Task<TicketDto> RecallAsync(Guid ticketId, CancellationToken ct = default)
     {
         var ticket = await LoadTicketAsync(ticketId, ct);
-        if (ticket.Status is not (TicketStatus.Called or TicketStatus.InService))
+        if (ticket.Status == TicketStatus.InService)
+        {
+            throw new QueueOperationException("لا يمكن إعادة نداء مراجع قيد الخدمة");
+        }
+
+        if (ticket.Status != TicketStatus.Called)
         {
             throw new QueueOperationException("لا يمكن إعادة نداء تذكرة لم يتم استدعاؤها بعد");
         }

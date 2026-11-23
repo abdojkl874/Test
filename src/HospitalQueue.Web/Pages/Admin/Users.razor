@@ -32,6 +32,7 @@
             <MudTh>الدور</MudTh>
             <MudTh>العيادات المخصّصة</MudTh>
             <MudTh>الحالة</MudTh>
+            <MudTh>آخر تسجيل دخول</MudTh>
             <MudTh Style="width:1%;"></MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -54,6 +55,18 @@
                 <MudChip T="string" Size="Size.Small" Class="@(context.User.IsActive ? "hq-chip-done" : "hq-chip-cancelled")">
                     @(context.User.IsActive ? "مفعّل" : "معطّل")
                 </MudChip>
+            </MudTd>
+            <MudTd DataLabel="آخر تسجيل دخول">
+                @if (context.User.LastLoginAt is { } lastLogin)
+                {
+                    <MudText Typo="Typo.body2" Style="font-variant-numeric: tabular-nums; white-space: nowrap;">
+                        @lastLogin.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
+                    </MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">لم يسجّل الدخول بعد</MudText>
+                }
             </MudTd>
             <MudTd>
                 <MudIconButton Icon="@Icons.Material.Filled.Settings" Size="Size.Small" Color="Color.Primary"
@@ -303,6 +316,12 @@
         }
 
         var row = editing;
+
+        // The row was loaded when the page opened; the user may have signed in
+        // since, which rewrites LastLoginAt and the concurrency stamp. Refresh
+        // first so the save neither fails on a stale stamp nor writes an old
+        // last-login time back.
+        await Db.Entry(row.User).ReloadAsync();
 
         row.User.FullName = editFullName.Trim();
         row.User.IsActive = editIsActive;

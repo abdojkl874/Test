@@ -78,9 +78,16 @@
 
         <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Class="hq-action-btn hq-action-primary"
                    StartIcon="@Icons.Material.Filled.NotificationsActive" OnClick="CallNextAsync"
-                   Disabled="isBusy || activeSession is null || currentTicket is not null">
+                   Disabled="isBusy || activeSession is null || currentTicket is not null || waitingCount == 0">
             استدعاء التالي
         </MudButton>
+
+        @if (activeSession is not null && currentTicket is null && waitingCount == 0)
+        {
+            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Dense="true" Class="hq-no-waiting-alert">
+                لا يوجد مراجعون بالانتظار حالياً — سيتفعّل زر الاستدعاء تلقائياً عند وصول مراجع جديد
+            </MudAlert>
+        }
 
         <div class="hq-action-grid">
             @if (currentTicket?.Status == TicketStatus.InService)
@@ -97,7 +104,7 @@
 
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" FullWidth="true" Class="hq-action-btn"
                        StartIcon="@Icons.Material.Filled.Campaign" OnClick="RecallAsync"
-                       Disabled="currentTicket is null">إعادة نداء</MudButton>
+                       Disabled="currentTicket?.Status != TicketStatus.Called">إعادة نداء</MudButton>
 
             <MudButton Variant="Variant.Filled" Color="Color.Warning" FullWidth="true" Class="hq-action-btn"
                        StartIcon="@Icons.Material.Filled.PersonOff" OnClick="SkipAsync"
@@ -264,7 +271,7 @@
             var ticket = await QueueService.CallNextAsync(activeSession.Id);
             if (ticket is null)
             {
-                Snackbar.Add("لا يوجد مرضى بانتظار هذه الخدمة حالياً", Severity.Info);
+                Snackbar.Add("لا يوجد مراجعون بانتظار هذه الخدمة حالياً", Severity.Warning);
             }
             else
             {
@@ -273,6 +280,8 @@
                 showTransfer = false;
                 StopServiceTimer();
             }
+
+            waitingCount = await QueueService.GetWaitingCountAsync(activeSession.ServiceId);
         }
         catch (QueueOperationException ex)
         {
@@ -286,7 +295,9 @@
 
     private async Task RecallAsync()
     {
-        if (currentTicket is null) return;
+        // A patient already in service is standing at the desk, so calling
+        // them again would only re-announce them on the board.
+        if (currentTicket?.Status != TicketStatus.Called) return;
         try
         {
             currentTicket = await QueueService.RecallAsync(currentTicket.Id);
@@ -368,13 +379,19 @@
         }
     }
 
-    private async Task OnQueueChangedAsync(Guid serviceId)
+    private Task OnQueueChangedAsync(Guid serviceId)
     {
-        if (activeSession is not null && serviceId == activeSession.ServiceId)
+        // Runs on the circuit's sync context: the count drives whether "call
+        // next" is enabled, and the circuit's DbContext must not be queried
+        // concurrently with a button handler.
+        return InvokeAsync(async () =>
         {
-            waitingCount = await QueueService.GetWaitingCountAsync(serviceId);
-            await InvokeAsync(StateHasChanged);
-        }
+            if (activeSession is not null && serviceId == activeSession.ServiceId)
+            {
+                waitingCount = await QueueService.GetWaitingCountAsync(serviceId);
+                StateHasChanged();
+            }
+        });
     }
 
     private static string StatusLabel(TicketStatus status) => status switch
