@@ -68,6 +68,11 @@ public class LoginModel : PageModel
             return Page();
         }
 
+        // Shown to admins on the users screen. Best-effort: a failure to
+        // record it must not block the sign-in itself.
+        user.LastLoginAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+
         if (!string.IsNullOrEmpty(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
         {
             return LocalRedirect(ReturnUrl);

@@ -62,6 +62,7 @@ public static class SeedData
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "KioskDeviceKey" text NULL;
             ALTER TABLE "OrganizationSettings" ADD COLUMN IF NOT EXISTS "DisplayDeviceKey" text NULL;
             ALTER TABLE "AspNetUsers" DROP COLUMN IF EXISTS "EmployeeCode";
+            ALTER TABLE "AspNetUsers" ADD COLUMN IF NOT EXISTS "LastLoginAt" timestamp with time zone NULL;
 
             -- Counters were dropped in favour of clinics alone: sessions are now
             -- (employee, clinic). On a fresh database EnsureCreatedAsync has
